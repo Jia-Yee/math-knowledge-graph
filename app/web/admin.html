@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学知识图谱 - 后台管理</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --primary:#6366f1;--primary-light:#818cf8;--bg:#f1f5f9;
+            --surface:#fff;--text:#1e293b;--text-secondary:#64748b;
+            --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+            --success:#10b981;--danger:#ef4444;--warning:#f59e0b;
+        }
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+        
+        .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+        .header-title{display:flex;align-items:center;gap:10px;font-size:1.2em;font-weight:700;color:var(--primary)}
+        .header-title .icon{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff}
+        
+        .nav{display:flex;gap:4px}
+        .nav-btn{padding:8px 18px;border:none;background:transparent;border-radius:8px;font-size:.9em;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .2s}
+        .nav-btn:hover{background:var(--bg)}
+        .nav-btn.active{background:var(--primary);color:#fff}
+        
+        .main{display:flex;height:calc(100vh - 64px)}
+        .sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);padding:16px;overflow-y:auto}
+        .sidebar-title{font-size:.72em;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+        
+        .stat-card{background:var(--bg);border-radius:10px;padding:14px;margin-bottom:12px}
+        .stat-value{font-size:1.8em;font-weight:700;color:var(--primary)}
+        .stat-label{font-size:.8em;color:var(--text-secondary);margin-top:4px}
+        
+        .menu-item{display:block;width:100%;padding:10px 12px;border:none;background:transparent;border-radius:8px;text-align:left;font-size:.9em;color:var(--text);cursor:pointer;margin-bottom:4px;transition:all .15s}
+        .menu-item:hover{background:var(--bg)}
+        .menu-item.active{background:var(--primary);color:#fff}
+        
+        .content{flex:1;padding:20px;overflow-y:auto}
+        
+        .panel{background:var(--surface);border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px}
+        .panel-title{font-size:1.1em;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+        
+        .form-group{margin-bottom:16px}
+        .form-label{display:block;font-size:.85em;font-weight:500;margin-bottom:6px;color:var(--text)}
+        .form-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9em;transition:all .2s}
+        .form-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        
+        .btn{padding:10px 18px;border:none;border-radius:8px;font-size:.9em;font-weight:500;cursor:pointer;transition:all .2s}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover{background:var(--primary-light)}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-danger{background:var(--danger);color:#fff}
+        .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+        
+        .search-box{position:relative;margin-bottom:16px}
+        .search-input{width:100%;padding:12px 16px 12px 40px;border:1px solid var(--border);border-radius:10px;font-size:.95em;background:var(--bg)}
+        .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-secondary)}
+        
+        .table{width:100%;border-collapse:collapse}
+        .table th,.table td{padding:12px;text-align:left;border-bottom:1px solid var(--border);font-size:.9em}
+        .table th{font-weight:600;color:var(--text-secondary);background:var(--bg)}
+        .table tr:hover{background:var(--bg)}
+        
+        .tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:.75em;font-weight:500}
+        .tag-branch{background:#e0f2fe;color:#0369a1}
+        .tag-grade{background:#f0fdf4;color:#15803d}
+        
+        .modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+        .modal.hidden{display:none}
+        .modal-content{background:var(--surface);border-radius:16px;padding:24px;width:90%;max-width:600px;max-height:90vh;overflow-y:auto}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+        .modal-title{font-size:1.2em;font-weight:600}
+        .modal-close{width:32px;height:32px;border:none;background:var(--bg);border-radius:8px;cursor:pointer;font-size:1.2em}
+        
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:12px 20px;border-radius:10px;font-size:.9em;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+        .toast.show{opacity:1}
+        
+        .empty-state{text-align:center;padding:40px;color:var(--text-secondary)}
+        
+        .pagination{display:flex;gap:8px;justify-content:center;margin-top:20px}
+        .page-btn{padding:8px 14px;border:1px solid var(--border);background:var(--surface);border-radius:8px;cursor:pointer;font-size:.85em}
+        .page-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        
+        .grade-filter{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+        .grade-btn{padding:6px 12px;border:1px solid var(--border);background:var(--surface);border-radius:20px;font-size:.8em;cursor:pointer;transition:all .15s}
+        .grade-btn:hover{border-color:var(--primary)}
+        .grade-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="header-title">
+        <div class="icon">⚙️</div>
+        <span>数学知识图谱 - 后台管理</span>
+    </div>
+    <div class="nav">
+        <button class="nav-btn" onclick="location.href='/web'">← 返回前台</button>
+    </div>
+</div>
+
+<div class="main">
+    <div class="sidebar">
+        <div class="sidebar-title">📊 统计</div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalNodes">—</div>
+            <div class="stat-label">总节点数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalRelations">—</div>
+            <div class="stat-label">总关系数</div>
+        </div>
+        
+        <div class="sidebar-title" style="margin-top:20px">📋 功能</div>
+        <button class="menu-item active" onclick="showPage('search')">🔍 搜索查询</button>
+        <button class="menu-item" onclick="showPage('create')">➕ 新增节点</button>
+        <button class="menu-item" onclick="showPage('edit')">✏️ 编辑节点</button>
+        <button class="menu-item" onclick="showPage('relations')">🔗 关系管理</button>
+        <button class="menu-item" onclick="showPage('graph')">🗺️ 图谱探索</button>
+    </div>
+    
+    <div class="content" id="content">
+        <!-- 内容动态加载 -->
+    </div>
+</div>
+
+<div class="modal hidden" id="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTitle">编辑节点</div>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:8088';
+let currentPage = 'search';
+let searchResults = [];
+let editNode = null;
+
+const GRADES = ['小学一年级', '小学二年级', '小学三年级', '小学四年级', '小学五年级', '小学六年级',
+    '初中一年级', '初中二年级', '初中三年级', '高中一年级', '高中二年级', '高中三年级', '大学及以上'];
+const BRANCHES = ['arithmetic', 'algebra', 'geometry', 'analysis', 'probability', 'statistics', 'discrete', 'number_theory', 'trigonometry', 'topology'];
+const BRANCH_NAMES = {
+    arithmetic: '算术', algebra: '代数', geometry: '几何', analysis: '分析',
+    probability: '概率', statistics: '统计', discrete: '离散数学', number_theory: '数论',
+    trigonometry: '三角学', topology: '拓扑学'
+};
+
+// 初始化
+async function init() {
+    await loadStats();
+    
+    // 检查URL参数，自动打开编辑
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId) {
+        await editNodeById(editId);
+        // 切换到编辑页面
+        document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.menu-item')[2]?.classList.add('active');
+    } else {
+        showPage('search');
+    }
+}
+
+// 加载统计
+async function loadStats() {
+    try {
+        const res = await fetch(`${API}/admin/stats`);
+        const data = await res.json();
+        document.getElementById('totalNodes').textContent = data.total_nodes;
+        document.getElementById('totalRelations').textContent = data.total_relations;
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+// 显示提示
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// 切换页面
+function showPage(page) {
+    currentPage = page;
+    document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
+    event?.target?.classList.add('active');
+    
+    const content = document.getElementById('content');
+    
+    switch(page) {
+        case 'search':
+            renderSearchPage(content);
+            break;
+        case 'create':
+            renderCreatePage(content);
+            break;
+        case 'edit':
+            renderEditPage(content);
+            break;
+        case 'relations':
+            renderRelationsPage(content);
+            break;
+        case 'graph':
+            renderGraphPage(content);
+            break;
+    }
+}
+
+// ===== 搜索页面 =====
+function renderSearchPage(content) {
+    content.innerHTML = `
+        <div class="panel">
+            <div class="panel-title">🔍 搜索知识点</div>
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input class="search-input" id="searchInput" placeholder="输入关键词搜索..." oninput="handleSearch(this.value)">
+            </div>
+            <div class="grade-filter" id="gradeFilter"></div>
+            <div id="searchResults"></div>
+        </div>
+    `;
+    
+    // 年级筛选
+    const gradeFilter = document.getElementById('gradeFilter');
+    gradeFilter.innerHTML = `<button class="grade-btn active" onclick="filterByGrade('')">全部</button>` + 
+        GRADES.map(g => `<button class="grade-btn" onclick="filterByGrade('${g}')">${g}</button>`).join('');
+}
+
+let currentGradeFilter = '';
+async function handleSearch(q) {
+    if (!q.trim()) {
+        document.getElementById('searchResults').innerHTML = '<div class="empty-state">请输入搜索关键词</div>';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API}/admin/search?q=${encodeURIComponent(q)}&limit=50`);
+        const data = await res.json();
+        searchResults = data.results;
+        renderSearchResults();
+    } catch(e) {
+        showToast('搜索失败: ' + e.message);
+    }
+}
+
+function filterByGrade(grade) {
+    currentGradeFilter = grade;
+    document.querySelectorAll('.grade-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent === grade || (grade === '' && b.textContent === '全部'));
+    });
+    renderSearchResults();
+}
+
+function renderSearchResults() {
+    let results = searchResults;
+    if (currentGradeFilter) {
+        results = results.filter(r => r.id.includes(currentGradeFilter.replace('年级', '').replace('小学', 'g').replace('初中', 'j').replace('高中', 'h')) || 
+            (r.branch && r.branch.includes(currentGradeFilter)));
+    }
+    
+    const el = document.getElementById('searchResults');
+    if (results.length === 0) {
+        el.innerHTML = '<div class="empty-state">未找到相关知识点</div>';
+        return;
+    }
+    
+    el.innerHTML = `
+        <table class="table">
+            <thead><tr><th>ID</th><th>名称</th><th>分支</th><th>操作</th></tr></thead>
+            <tbody>
+                ${results.map(r => `
+                    <tr>
+                        <td>${r.id}</td>
+                        <td>${r.name?.zh || r.name || r.id}</td>
+                        <td><span class="tag tag-branch">${BRANCH_NAMES[r.branch] || r.branch || '—'}</span></td>
+                        <td>
+                            <button class="btn btn-primary" style="padding:6px 12px;font-size:.8em" onclick="editNodeById('${r.id}')">编辑</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+// ===== 新增页面 =====
+function renderCreatePage(content) {
+    const GRADES = [
+        '', '小学一年级', '小学二年级', '小学三年级', '小学四年级', '小学五年级', '小学六年级',
+        '初中一年级', '初中二年级', '初中三年级', '高中一年级', '高中二年级', '高中三年级', '大学及以上'
+    ];
+    
+    content.innerHTML = `
+        <div class="panel">
+            <div class="panel-title">➕ 新增知识点</div>
+            <form onsubmit="createNode(event)">
+                <div class="form-group">
+                    <label class="form-label">节点ID *</label>
+                    <input class="form-input" name="id" required placeholder="如: g1_math_001" pattern="[a-zA-Z0-9_]+">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">名称(中文) *</label>
+                    <input class="form-input" name="name_zh" required placeholder="如: 分数的初步认识">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">名称(英文)</label>
+                    <input class="form-input" name="name_en" placeholder="如: Fraction Basics">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">分支 *</label>
+                        <select class="form-input" name="branch" required>
+                            ${BRANCHES.map(b => `<option value="${b}">${BRANCH_NAMES[b]}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">类型</label>
+                        <select class="form-input" name="type">
+                            <option value="concept">概念</option>
+                            <option value="theorem">定理</option>
+                            <option value="formula">公式</option>
+                            <option value="method">方法</option>
+                            <option value="law">定律</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">学段</label>
+                        <select class="form-input" name="education_level">
+                            <option value="">无</option>
+                            <option value="小学">小学</option>
+                            <option value="初中">初中</option>
+                            <option value="高中">高中</option>
+                            <option value="大学">大学</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">年级</label>
+                        <select class="form-input" name="grade">
+                            ${GRADES.map(g => `<option value="${g}">${g || '无'}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <textarea class="form-input" name="description" rows="3" placeholder="知识点的详细描述..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">难度 (1-10)</label>
+                        <input class="form-input" name="difficulty" type="number" min="1" max="10" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">重要性 (1-10)</label>
+                        <input class="form-input" name="importance" type="number" min="1" max="10" value="5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">前置知识 (用逗号分隔ID)</label>
+                    <input class="form-input" name="prerequisites" placeholder="如: g1_count_1_5, g1_count_6_10">
+                </div>
+                <button type="submit" class="btn btn-success">创建节点</button>
+            </form>
+        </div>
+    `;
+}
+
+async function createNode(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        id: form.id.value,
+        name: {
+            zh: form.name_zh.value,
+            en: form.name_en.value || ''
+        },
+        branch: form.branch.value,
+        type: form.type.value,
+        education_level: form.education_level.value,
+        grade: form.grade.value,
+        description: { zh: form.description.value },
+        difficulty: parseInt(form.difficulty.value),
+        importance: parseInt(form.importance.value),
+        prerequisites: form.prerequisites.value ? form.prerequisites.value.split(',').map(s => s.trim()).filter(s => s) : []
+    };
+    
+    try {
+        const res = await fetch(`${API}/admin/nodes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+            showToast('节点创建成功!');
+            form.reset();
+            loadStats();
+        } else {
+            const err = await res.json();
+            showToast('创建失败: ' + (err.detail || err.message));
+        }
+    } catch(e) {
+        showToast('创建失败: ' + e.message);
+    }
+}
+
+// ===== 编辑页面 =====
+function renderEditPage(content) {
+    content.innerHTML = `
+        <div class="panel">
+            <div class="panel-title">✏️ 编辑知识点</div>
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input class="search-input" id="editSearchInput" placeholder="输入节点ID或名称搜索..." oninput="searchEditNode(this.value)">
+            </div>
+            <div id="editResults"></div>
+        </div>
+    `;
+}
+
+async function searchEditNode(q) {
+    if (!q.trim()) {
+        document.getElementById('editResults').innerHTML = '<div class="empty-state">请输入搜索关键词</div>';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API}/admin/search?q=${encodeURIComponent(q)}&limit=20`);
+        const data = await res.json();
+        const results = data.results;
+        
+        const el = document.getElementById('editResults');
+        if (results.length === 0) {
+            el.innerHTML = '<div class="empty-state">未找到相关知识点</div>';
+            return;
+        }
+        
+        el.innerHTML = `
+            <table class="table">
+                <thead><tr><th>ID</th><th>名称</th><th>操作</th></tr></thead>
+                <tbody>
+                    ${results.map(r => `
+                        <tr>
+                            <td>${r.id}</td>
+                            <td>${r.name?.zh || r.id}</td>
+                            <td><button class="btn btn-primary" style="padding:6px 12px;font-size:.8em" onclick="editNodeById('${r.id}')">编辑</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch(e) {
+        showToast('搜索失败: ' + e.message);
+    }
+}
+
+async function editNodeById(nodeId) {
+    try {
+        const res = await fetch(`${API}/nodes/${nodeId}`);
+        const data = await res.json();
+        editNode = data.node;
+        openEditModal(editNode);
+    } catch(e) {
+        showToast('获取节点失败: ' + e.message);
+    }
+}
+
+function openEditModal(node) {
+    const modal = document.getElementById('modal');
+    const body = document.getElementById('modalBody');
+    
+    document.getElementById('modalTitle').textContent = '编辑: ' + (node.name?.zh || node.id);
+    
+    // 构建年级选项
+    const GRADES = [
+        { v: '', t: '无' },
+        { v: '小学一年级', t: '小学一年级' },
+        { v: '小学二年级', t: '小学二年级' },
+        { v: '小学三年级', t: '小学三年级' },
+        { v: '小学四年级', t: '小学四年级' },
+        { v: '小学五年级', t: '小学五年级' },
+        { v: '小学六年级', t: '小学六年级' },
+        { v: '初中一年级', t: '初中一年级' },
+        { v: '初中二年级', t: '初中二年级' },
+        { v: '初中三年级', t: '初中三年级' },
+        { v: '高中一年级', t: '高中一年级' },
+        { v: '高中二年级', t: '高中二年级' },
+        { v: '高中三年级', t: '高中三年级' },
+        { v: '大学及以上', t: '大学及以上' }
+    ];
+    
+    body.innerHTML = `
+        <form onsubmit="updateNode(event)">
+            <input type="hidden" name="id" value="${node.id}">
+            
+            <div class="form-group">
+                <label class="form-label">名称(中文)</label>
+                <input class="form-input" name="name_zh" value="${node.name?.zh || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">名称(英文)</label>
+                <input class="form-input" name="name_en" value="${node.name?.en || ''}">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">分支</label>
+                    <select class="form-input" name="branch">
+                        ${BRANCHES.map(b => `<option value="${b}" ${node.branch === b ? 'selected' : ''}>${BRANCH_NAMES[b]}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">类型</label>
+                    <select class="form-input" name="type">
+                        <option value="concept" ${node.type === 'concept' ? 'selected' : ''}>概念</option>
+                        <option value="theorem" ${node.type === 'theorem' ? 'selected' : ''}>定理</option>
+                        <option value="formula" ${node.type === 'formula' ? 'selected' : ''}>公式</option>
+                        <option value="method" ${node.type === 'method' ? 'selected' : ''}>方法</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">学段</label>
+                    <select class="form-input" name="education_level">
+                        <option value="">无</option>
+                        <option value="小学" ${node.education_level === '小学' ? 'selected' : ''}>小学</option>
+                        <option value="初中" ${node.education_level === '初中' ? 'selected' : ''}>初中</option>
+                        <option value="高中" ${node.education_level === '高中' ? 'selected' : ''}>高中</option>
+                        <option value="大学" ${node.education_level === '大学' ? 'selected' : ''}>大学</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">年级</label>
+                    <select class="form-input" name="grade">
+                        ${GRADES.map(g => `<option value="${g.v}" ${node.grade === g.v ? 'selected' : ''}>${g.t}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">描述</label>
+                <textarea class="form-input" name="description" rows="3">${node.description?.zh || ''}</textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">难度</label>
+                    <input class="form-input" name="difficulty" type="number" min="1" max="10" value="${node.difficulty || 5}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">重要性</label>
+                    <input class="form-input" name="importance" type="number" min="1" max="10" value="${node.importance || 5}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">前置知识 (逗号分隔)</label>
+                <input class="form-input" name="prerequisites" value="${(node.prerequisites || []).join(', ')}">
+            </div>
+            
+            <div style="display:flex;gap:12px;margin-top:20px">
+                <button type="submit" class="btn btn-success">保存修改</button>
+                <button type="button" class="btn btn-danger" onclick="deleteNodeConfirm()">删除节点</button>
+            </div>
+        </form>
+    `;
+    
+    modal.classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+}
+
+async function updateNode(e) {
+    e.preventDefault();
+    const form = e.target;
+    const nodeId = form.id.value;
+    
+    const data = {
+        name: { zh: form.name_zh.value, en: form.name_en.value },
+        branch: form.branch.value,
+        type: form.type.value,
+        education_level: form.education_level.value,
+        grade: form.grade.value,
+        description: { zh: form.description.value },
+        difficulty: parseInt(form.difficulty.value),
+        importance: parseInt(form.importance.value),
+        prerequisites: form.prerequisites.value ? form.prerequisites.value.split(',').map(s => s.trim()).filter(s => s) : []
+    };
+    
+    try {
+        const res = await fetch(`${API}/admin/nodes/${nodeId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+            showToast('节点更新成功!');
+            closeModal();
+            loadStats();
+        } else {
+            const err = await res.json();
+            showToast('更新失败: ' + (err.detail || err.message));
+        }
+    } catch(e) {
+        showToast('更新失败: ' + e.message);
+    }
+}
+
+function deleteNodeConfirm() {
+    if (!editNode) return;
+    if (!confirm(`确定要删除节点 "${editNode.name?.zh || editNode.id}" 吗？此操作不可恢复！`)) return;
+    
+    fetch(`${API}/admin/nodes/${editNode.id}`, { method: 'DELETE' })
+        .then(res => {
+            if (res.ok) {
+                showToast('节点删除成功!');
+                closeModal();
+                loadStats();
+            } else {
+                showToast('删除失败');
+            }
+        })
+        .catch(e => showToast('删除失败: ' + e.message));
+}
+
+// ===== 关系管理页面 =====
+function renderRelationsPage(content) {
+    content.innerHTML = `
+        <div class="panel">
+            <div class="panel-title">🔗 添加前置关系</div>
+            <form onsubmit="addRelation(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">源节点 (前置知识)</label>
+                        <input class="form-input" name="source" required placeholder="如: g1_count_1_5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">目标节点 (需要前置知识的节点)</label>
+                        <input class="form-input" name="target" required placeholder="如: g1_count_6_10">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">添加关系</button>
+            </form>
+        </div>
+        
+        <div class="panel">
+            <div class="panel-title">🔍 查询节点关系</div>
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input class="search-input" placeholder="输入节点ID查看其前置和后续知识..." oninput="queryRelations(this.value)">
+            </div>
+            <div id="relationsResult"></div>
+        </div>
+    `;
+}
+
+async function addRelation(e) {
+    e.preventDefault();
+    const form = e.target;
+    
+    try {
+        const res = await fetch(`${API}/admin/relations?source_id=${form.source.value}&target_id=${form.target.value}`, {
+            method: 'POST'
+        });
+        
+        if (res.ok) {
+            showToast('关系添加成功!');
+            form.reset();
+            loadStats();
+        } else {
+            const err = await res.json();
+            showToast('添加失败: ' + (err.detail || err.message));
+        }
+    } catch(e) {
+        showToast('添加失败: ' + e.message);
+    }
+}
+
+async function queryRelations(nodeId) {
+    if (!nodeId.trim()) {
+        document.getElementById('relationsResult').innerHTML = '';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API}/nodes/${nodeId}`);
+        if (!res.ok) {
+            document.getElementById('relationsResult').innerHTML = '<div class="empty-state">节点不存在</div>';
+            return;
+        }
+        
+        const data = await res.json();
+        const node = data.node;
+        
+        document.getElementById('relationsResult').innerHTML = `
+            <div style="margin-bottom:16px">
+                <strong>节点:</strong> ${node.name?.zh || node.id}
+            </div>
+            
+            <div style="margin-bottom:16px">
+                <strong>前置知识 (${(data.prerequisites || []).length}):</strong>
+                ${data.prerequisites?.length ? data.prerequisites.map(p => `
+                    <div style="display:flex;align-items:center;gap:8px;margin:8px 0">
+                        <span>← ${p.id}: ${p.name?.zh || ''}</span>
+                        <button class="btn btn-secondary" style="padding:4px 8px;font-size:.75em" onclick="removeRelation('${nodeId}', '${p.id}')">删除</button>
+                    </div>
+                `).join('') : '<div style="color:var(--text-secondary)">无前置知识</div>'}
+            </div>
+            
+            <div>
+                <strong>后续知识 (${(data.next_nodes || []).length}):</strong>
+                ${data.next_nodes?.length ? data.next_nodes.map(n => `
+                    <div style="margin:8px 0">→ ${n.id}: ${n.name?.zh || ''}</div>
+                `).join('') : '<div style="color:var(--text-secondary)">无后续知识</div>'}
+            </div>
+        `;
+    } catch(e) {
+        showToast('查询失败: ' + e.message);
+    }
+}
+
+async function removeRelation(sourceId, targetId) {
+    if (!confirm('确定要删除这条前置关系吗？')) return;
+    
+    try {
+        const res = await fetch(`${API}/admin/relations?source_id=${sourceId}&target_id=${targetId}&relation_type=prerequisite`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            showToast('关系删除成功!');
+            queryRelations(sourceId);
+            loadStats();
+        } else {
+            showToast('删除失败');
+        }
+    } catch(e) {
+        showToast('删除失败: ' + e.message);
+    }
+}
+
+
+function renderGraphPage(content) {
+    content.innerHTML = `
+        <div class="panel">
+            <div class="panel-title">🗺️ 图谱探索 - 以知识点为中心</div>
+            
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px">
+                    <input class="form-input" id="rootNodeInput" placeholder="输入根节点ID (如: g1_count_1_5)">
+                </div>
+                <div style="width:120px">
+                    <input class="form-input" id="expandLevel" type="number" value="2" min="1" max="5" title="展开层级">
+                </div>
+                <button class="btn btn-primary" onclick="loadGraph()">🚀 加载图谱</button>
+            </div>
+            
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+                <label style="display:flex;align-items:center;gap:6px;font-size:.85em">
+                    <input type="checkbox" id="showPrereq" checked> 显示前置知识
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:.85em">
+                    <input type="checkbox" id="showNext" checked> 显示后续知识
+                </label>
+            </div>
+        </div>
+        
+        <div class="panel" style="padding:0;overflow:hidden">
+            <div id="graphContainer" style="width:100%;height:600px;background:var(--surface);position:relative">
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-secondary)">
+                    请输入节点ID并点击"加载图谱"
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel hidden" id="nodeDetailPanel">
+            <div class="panel-title" id="nodeDetailTitle">节点详情</div>
+            <div id="nodeDetailContent"></div>
+        </div>
+    `;
+}
+
+async function loadGraph() {
+    const rootId = document.getElementById('rootNodeInput').value.trim();
+    if (!rootId) {
+        showToast('请输入节点ID');
+        return;
+    }
+    
+    const level = parseInt(document.getElementById('expandLevel').value) || 2;
+    const showPrereq = document.getElementById('showPrereq').checked;
+    const showNext = document.getElementById('showNext').checked;
+    
+    try {
+        // 获取根节点及其关联节点
+        const res = await fetch(`${API}/nodes/${rootId}`);
+        if (!res.ok) {
+            showToast('节点不存在');
+            return;
+        }
+        
+        const data = await res.json();
+        const rootNode = data.node;
+        
+        // 收集需要加载的节点
+        const nodesToLoad = new Set([rootId]);
+        const visited = new Set();
+        const maxLevel = level;
+        
+        // BFS获取前置知识
+        function loadPrereqs(nodeId, currentLevel) {
+            if (currentLevel >= maxLevel || visited.has(nodeId)) return;
+            visited.add(nodeId);
+            
+            const prereqs = data.prerequisites?.filter(p => p.id === nodeId) || [];
+            // 需要重新获取每个节点的前置
+            // 简化处理：只获取直接关联
+        }
+        
+        // 收集所有相关节点
+        const allNodeIds = new Set([rootId]);
+        const nodeDetails = {};
+        nodeDetails[rootId] = rootNode;
+        
+        // 收集前置知识（向上）
+        if (showPrereq) {
+            const prereqIds = data.prerequisites?.map(p => p.id) || [];
+            for (let i = 0; i < prereqIds.length && i < 20; i++) {
+                allNodeIds.add(prereqIds[i]);
+            }
+        }
+        
+        // 收集后续知识（向下）
+        if (showNext) {
+            const nextIds = data.next_nodes?.map(n => n.id) || [];
+            for (let i = 0; i < nextIds.length && i < 20; i++) {
+                allNodeIds.add(nextIds[i]);
+            }
+        }
+        
+        // 获取所有节点的详细信息
+        for (const nid of allNodeIds) {
+            if (!nodeDetails[nid]) {
+                try {
+                    const r = await fetch(`${API}/nodes/${nid}`);
+                    if (r.ok) {
+                        const d = await r.json();
+                        nodeDetails[nid] = d.node;
+                    }
+                } catch(e) {}
+            }
+        }
+        
+        // 构建图数据
+        const nodes = [];
+        const links = [];
+        
+        for (const nid of allNodeIds) {
+            const n = nodeDetails[nid];
+            if (!n) continue;
+            
+            nodes.push({
+                id: n.id,
+                name: n.name?.zh || n.name || n.id,
+                branch: n.branch,
+                type: n.type,
+                isRoot: nid === rootId
+            });
+            
+            // 添加前置关系
+            if (showPrereq && n.prerequisites) {
+                for (const p of n.prerequisites) {
+                    if (allNodeIds.has(p)) {
+                        links.push({ source: p, target: n.id, type: 'prereq' });
+                    }
+                }
+            }
+            
+            // 添加后续关系
+            if (showNext && n.prerequisites) {
+                // 反向：n是其他节点的前置
+            }
+        }
+        
+        // 重新获取后续关系
+        if (showNext) {
+            for (const nid of allNodeIds) {
+                const n = nodeDetails[nid];
+                if (!n) continue;
+                
+                // 查找哪些节点的prerequisites包含这个nid
+                for (const tid of allNodeIds) {
+                    if (tid === nid) continue;
+                    const tnode = nodeDetails[tid];
+                    if (tnode?.prerequisites?.includes(nid)) {
+                        links.push({ source: nid, target: tid, type: 'next' });
+                    }
+                }
+            }
+        }
+        
+        graphData = { nodes, links };
+        rootNodeId = rootId;
+        
+        // 渲染图
+        renderGraph();
+        
+        // 显示节点详情
+        document.getElementById('nodeDetailPanel').classList.remove('hidden');
+        showNodeDetail(rootId);
+        
+    } catch(e) {
+        showToast('加载失败: ' + e.message);
+    }
+}
+
+function renderGraph() {
+    const container = document.getElementById('graphContainer');
+    if (!graphData.nodes.length) {
+        container.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-secondary)">暂无数据</div>';
+        return;
+    }
+    
+    const W = container.clientWidth;
+    const H = container.clientHeight;
+    
+    container.innerHTML = `<svg id="graphSvg" style="width:100%;height:100%"></svg>`;
+    const svg = d3.select('#graphSvg').attr('width', W).attr('height', H);
+    svg.selectAll('*').remove();
+    
+    // 节点颜色
+    function nodeColor(d) {
+        if (d.isRoot) return '#ef4444';
+        const colors = {
+            arithmetic: '#10b981', algebra: '#6366f1', geometry: '#f59e0b',
+            analysis: '#ef4444', probability: '#8b5cf6', statistics: '#06b6d4',
+            discrete: '#84cc16', number_theory: '#ec4899'
+        };
+        return colors[d.branch] || '#94a3b8';
+    }
+    
+    // 仿真
+    const sim = d3.forceSimulation(graphData.nodes)
+        .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(80))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(W/2, H/2))
+        .force('collision', d3.forceCollide().radius(30));
+    
+    graphSimulation = sim;
+    
+    const g = svg.append('g');
+    
+    // 缩放
+    svg.call(d3.zoom().scaleExtent([0.2, 3]).on('zoom', e => g.attr('transform', e.transform)));
+    
+    // 边
+    const link = g.append('g')
+        .selectAll('line')
+        .data(graphData.links)
+        .enter().append('line')
+        .attr('stroke', d => d.type === 'prereq' ? '#94a3b8' : '#10b981')
+        .attr('stroke-width', 1.5)
+        .attr('stroke-opacity', 0.6);
+    
+    // 边箭头
+    g.append('defs').append('marker')
+        .attr('id', 'arrowhead')
+        .attr('viewBox', '-0 -5 10 10')
+        .attr('refX', 20)
+        .attr('refY', 0)
+        .attr('orient', 'auto')
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .append('path')
+        .attr('d', 'M 0,-5 L 10,0 L 0,5')
+        .attr('fill', '#94a3b8');
+    
+    // 节点
+    const node = g.append('g')
+        .selectAll('g')
+        .data(graphData.nodes)
+        .enter().append('g')
+        .attr('cursor', 'pointer')
+        .call(d3.drag()
+            .on('start', (e, d) => { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end', (e, d) => { if(!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+    
+    node.append('circle')
+        .attr('r', d => d.isRoot ? 16 : 12)
+        .attr('fill', nodeColor)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+    
+    node.append('text')
+        .attr('dx', 15)
+        .attr('dy', 4)
+        .text(d => (d.name || '').substring(0, 12))
+        .attr('font-size', '11px')
+        .attr('fill', '#64748b');
+    
+    // 点击事件
+    node.on('click', (e, d) => {
+        showNodeDetail(d.id);
+    });
+    
+    sim.on('tick', () => {
+        link.attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+}
+
+async function showNodeDetail(nodeId) {
+    try {
+        const res = await fetch(`${API}/nodes/${nodeId}`);
+        const data = await res.json();
+        const n = data.node;
+        
+        document.getElementById('nodeDetailTitle').textContent = '节点详情: ' + (n.name?.zh || n.id);
+        
+        document.getElementById('nodeDetailContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+                <div><strong>ID:</strong> ${n.id}</div>
+                <div><strong>分支:</strong> ${BRANCH_NAMES[n.branch] || n.branch || '—'}</div>
+                <div><strong>类型:</strong> ${n.type || '概念'}</div>
+                <div><strong>难度:</strong> ${n.difficulty || '—'}</div>
+            </div>
+            
+            <div style="margin-bottom:16px">
+                <strong>描述:</strong>
+                <p style="color:var(--text-secondary);margin-top:4px">${n.description?.zh || '暂无描述'}</p>
+            </div>
+            
+            <div style="margin-bottom:16px">
+                <strong>前置知识 (${(data.prerequisites || []).length}):</strong>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                    ${data.prerequisites?.length ? data.prerequisites.map(p => `
+                        <span class="tag tag-branch" style="cursor:pointer" onclick="document.getElementById('rootNodeInput').value='${p.id}';loadGraph()">${p.name?.zh || p.id}</span>
+                    `).join('') : '<span style="color:var(--text-secondary)">无</span>'}
+                </div>
+            </div>
+            
+            <div style="margin-bottom:16px">
+                <strong>后续知识 (${(data.next_nodes || []).length}):</strong>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                    ${data.next_nodes?.length ? data.next_nodes.map(n => `
+                        <span class="tag tag-grade" style="cursor:pointer" onclick="document.getElementById('rootNodeInput').value='${n.id}';loadGraph()">${n.name?.zh || n.id}</span>
+                    `).join('') : '<span style="color:var(--text-secondary)">无</span>'}
+                </div>
+            </div>
+            
+            <div style="display:flex;gap:12px">
+                <button class="btn btn-primary" onclick="editInGraph('${n.id}')">✏️ 编辑此节点</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('rootNodeInput').value='${n.id}';loadGraph()">🔄以此节点为根</button>
+            </div>
+        `;
+    } catch(e) {
+        showToast('获取详情失败: ' + e.message);
+    }
+}
+
+function editInGraph(nodeId) {
+    // 切换到编辑页面
+    editNodeById(nodeId);
+    document.querySelectorAll('.menu-item')[2].click(); // 点击编辑菜单
+}
+
+// ===== 图谱探索页面 =====
+let graphData = { nodes: [], links: [] };
+let graphNodesMap = {};
+let currentRootId = null;
+
+function renderGraphPage(content) {
+    content.innerHTML = `
+        <div class="panel" style="margin-bottom:12px">
+            <div class="panel-title">🗺️ 图谱探索</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                <div style="flex:1;min-width:200px">
+                    <input class="form-input" id="rootNodeInput" placeholder="输入节点ID (如: g1_count_1_5)">
+                </div>
+                <button class="btn btn-primary" onclick="loadGraph()">🚀 加载</button>
+                <button class="btn btn-secondary" onclick="addNewNodeFromGraph()">➕ 添加节点</button>
+            </div>
+            <div style="font-size:.82em;color:var(--text-secondary);margin-top:8px">
+                💡 点击节点弹出操作菜单（查看/编辑/删除/添加关系/展开）
+            </div>
+        </div>
+        
+        <div style="display:flex;gap:12px;height:520px">
+            <!-- 图谱 -->
+            <div class="panel" style="flex:1;padding:0;overflow:hidden;min-width:0">
+                <div id="graphContainer" style="width:100%;height:100%;background:#fafafa;position:relative">
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-secondary);text-align:center">
+                        <div style="font-size:2em;margin-bottom:8px">🗺️</div>
+                        <div>输入节点ID并点击加载</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 节点列表 -->
+            <div class="panel" style="width:280px;overflow-y:auto;padding:12px">
+                <div style="font-weight:600;margin-bottom:10px;font-size:.9em">📋 节点列表 <span id="graphNodeCount" style="color:var(--text-secondary);font-weight:400"></span></div>
+                <div id="graphNodeList" style="font-size:.85em;color:var(--text-secondary)">加载后显示</div>
+            </div>
+        </div>
+        
+        <!-- 浮动操作菜单 -->
+        <div id="nodeContextMenu" style="display:none;position:fixed;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;min-width:180px;overflow:hidden">
+            <div id="nodeContextTitle" style="padding:10px 14px;font-weight:600;font-size:.9em;background:var(--bg);border-bottom:1px solid var(--border)"></div>
+            <div style="padding:4px">
+                <button class="ctx-btn" onclick="ctxView()">🔍 聚焦此节点</button>
+                <button class="ctx-btn" onclick="ctxExpand()">➕ 展开关联节点</button>
+                <button class="ctx-btn" onclick="ctxEdit()">✏️ 编辑节点</button>
+                <button class="ctx-btn" onclick="ctxAddRelation()">🔗 添加前置关系</button>
+                <button class="ctx-btn" style="color:var(--danger)" onclick="ctxDelete()">🗑️ 删除节点</button>
+            </div>
+        </div>
+        
+        <!-- 编辑/关系弹窗 -->
+        <div class="modal hidden" id="graphNodeModal">
+            <div class="modal-content" style="max-width:500px">
+                <div class="modal-header">
+                    <div class="modal-title" id="graphNodeModalTitle">操作</div>
+                    <button class="modal-close" onclick="closeGraphModal()">✕</button>
+                </div>
+                <div id="graphNodeModalBody"></div>
+            </div>
+        </div>
+    `;
+    
+    // 添加浮动菜单样式
+    if (!document.getElementById('ctxStyle')) {
+        const s = document.createElement('style');
+        s.id = 'ctxStyle';
+        s.textContent = `.ctx-btn{display:block;width:100%;padding:9px 14px;border:none;background:transparent;text-align:left;font-size:.88em;cursor:pointer;border-radius:6px;transition:background .15s}.ctx-btn:hover{background:var(--bg)}`;
+        document.head.appendChild(s);
+    }
+    
+    // 点击空白关闭菜单
+    document.addEventListener('click', hideContextMenu);
+}
+
+let ctxNode = null;
+
+function showContextMenu(event, d) {
+    event.preventDefault();
+    event.stopPropagation();
+    ctxNode = d;
+    const menu = document.getElementById('nodeContextMenu');
+    document.getElementById('nodeContextTitle').textContent = (d.name || d.id).substring(0, 20);
+    menu.style.display = 'block';
+    
+    // 定位菜单，防止超出屏幕
+    const x = Math.min(event.clientX, window.innerWidth - 200);
+    const y = Math.min(event.clientY, window.innerHeight - 250);
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+}
+
+function hideContextMenu() {
+    document.getElementById('nodeContextMenu').style.display = 'none';
+}
+
+function ctxView() {
+    if (!ctxNode) return;
+    hideContextMenu();
+    document.getElementById('rootNodeInput').value = ctxNode.id;
+    loadGraph();
+}
+
+async function ctxExpand() {
+    if (!ctxNode) return;
+    hideContextMenu();
+    try {
+        const res = await fetch(`${API}/nodes/${ctxNode.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const existIds = new Set(graphData.nodes.map(n => n.id));
+        let added = 0;
+        
+        const addNode = async (nid, name) => {
+            if (existIds.has(nid)) return;
+            existIds.add(nid);
+            let branch = 'arithmetic';
+            try {
+                const r = await fetch(`${API}/nodes/${nid}`);
+                if (r.ok) { const d = await r.json(); graphNodesMap[nid] = d.node; branch = d.node.branch; name = d.node.name?.zh || nid; }
+            } catch(e) {}
+            graphData.nodes.push({ id: nid, name, branch });
+            added++;
+        };
+        
+        for (const p of (data.prerequisites || []).slice(0, 8)) {
+            await addNode(p.id, p.name?.zh || p.id);
+            graphData.links.push({ source: p.id, target: ctxNode.id });
+        }
+        for (const n of (data.next_nodes || []).slice(0, 8)) {
+            await addNode(n.id, n.name?.zh || n.id);
+            graphData.links.push({ source: ctxNode.id, target: n.id });
+        }
+        
+        renderGraph();
+        renderNodeList();
+        showToast(`展开了 ${added} 个关联节点`);
+    } catch(e) { showToast('展开失败'); }
+}
+
+function ctxEdit() {
+    if (!ctxNode) return;
+    hideContextMenu();
+    openEditModalById(ctxNode.id);
+}
+
+function ctxAddRelation() {
+    if (!ctxNode) return;
+    hideContextMenu();
+    const modal = document.getElementById('graphNodeModal');
+    document.getElementById('graphNodeModalTitle').textContent = '添加前置关系';
+    document.getElementById('graphNodeModalBody').innerHTML = `
+        <div style="margin-bottom:12px;font-size:.9em;color:var(--text-secondary)">
+            将某节点设为 <strong>${ctxNode.name}</strong> 的前置知识
+        </div>
+        <div class="form-group">
+            <label class="form-label">前置节点ID</label>
+            <input class="form-input" id="addRelSource" placeholder="输入前置节点ID...">
+        </div>
+        <div style="margin-bottom:12px">
+            <div style="font-size:.85em;font-weight:500;margin-bottom:8px">或从图谱中选择:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow-y:auto">
+                ${graphData.nodes.filter(n => n.id !== ctxNode.id).map(n =>
+                    `<span class="tag tag-branch" style="cursor:pointer" onclick="document.getElementById('addRelSource').value='${n.id}'">${n.name}</span>`
+                ).join('')}
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="doAddRelFromCtx('${ctxNode.id}')">➕ 添加关系</button>
+    `;
+    modal.classList.remove('hidden');
+}
+
+async function doAddRelFromCtx(targetId) {
+    const srcId = document.getElementById('addRelSource').value.trim();
+    if (!srcId) { showToast('请输入前置节点ID'); return; }
+    try {
+        const res = await fetch(`${API}/admin/relations?source_id=${srcId}&target_id=${targetId}`, { method: 'POST' });
+        if (res.ok) {
+            showToast('关系添加成功!');
+            closeGraphModal();
+            // 如果源节点不在图中，加入
+            if (!graphData.nodes.find(n => n.id === srcId)) {
+                try {
+                    const r = await fetch(`${API}/nodes/${srcId}`);
+                    if (r.ok) {
+                        const d = await r.json();
+                        graphNodesMap[srcId] = d.node;
+                        graphData.nodes.push({ id: srcId, name: d.node.name?.zh || srcId, branch: d.node.branch });
+                    }
+                } catch(e) {}
+            }
+            graphData.links.push({ source: srcId, target: targetId });
+            renderGraph();
+            renderNodeList();
+        } else showToast('添加失败');
+    } catch(e) { showToast('添加失败'); }
+}
+
+function ctxDelete() {
+    if (!ctxNode) return;
+    hideContextMenu();
+    if (ctxNode.id === currentRootId) { showToast('不能删除根节点'); return; }
+    if (!confirm(`确定删除节点 "${ctxNode.name}" 吗？`)) return;
+    fetch(`${API}/admin/nodes/${ctxNode.id}`, { method: 'DELETE' })
+        .then(res => {
+            if (res.ok) {
+                showToast('删除成功');
+                graphData.nodes = graphData.nodes.filter(n => n.id !== ctxNode.id);
+                graphData.links = graphData.links.filter(l => {
+                    const sid = l.source?.id || l.source;
+                    const tid = l.target?.id || l.target;
+                    return sid !== ctxNode.id && tid !== ctxNode.id;
+                });
+                delete graphNodesMap[ctxNode.id];
+                renderGraph();
+                renderNodeList();
+                loadStats();
+            } else showToast('删除失败');
+        });
+}
+
+async function loadGraph() {
+    const rootId = document.getElementById('rootNodeInput').value.trim();
+    if (!rootId) { showToast('请输入节点ID'); return; }
+    try {
+        const res = await fetch(`${API}/nodes/${rootId}`);
+        if (!res.ok) { showToast('节点不存在'); return; }
+        const data = await res.json();
+        currentRootId = rootId;
+        const allIds = new Set([rootId]);
+        const nodeDetails = {};
+        nodeDetails[rootId] = data.node;
+        
+        if (data.prerequisites) data.prerequisites.slice(0, 12).forEach(p => allIds.add(p.id));
+        if (data.next_nodes) data.next_nodes.slice(0, 12).forEach(n => allIds.add(n.id));
+        
+        for (const nid of allIds) {
+            if (!nodeDetails[nid]) {
+                try {
+                    const r = await fetch(`${API}/nodes/${nid}`);
+                    if (r.ok) nodeDetails[nid] = (await r.json()).node;
+                } catch(e) {}
+            }
+        }
+        
+        graphNodesMap = nodeDetails;
+        const nodes = [], links = [];
+        for (const nid of allIds) {
+            const n = nodeDetails[nid]; if (!n) continue;
+            nodes.push({ id: n.id, name: n.name?.zh || n.id, branch: n.branch, isRoot: n.id === rootId });
+        }
+        for (const nid of allIds) {
+            const n = nodeDetails[nid]; if (!n || !n.prerequisites) continue;
+            n.prerequisites.forEach(p => { if (allIds.has(p)) links.push({ source: p, target: n.id }); });
+        }
+        
+        graphData = { nodes, links };
+        renderGraph();
+        renderNodeList();
+    } catch(e) { showToast('加载失败: ' + e.message); }
+}
+
+function renderGraph() {
+    const c = document.getElementById('graphContainer');
+    if (!c) return;
+    if (!graphData.nodes.length) {
+        c.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-secondary)">暂无数据</div>';
+        return;
+    }
+    const W = c.clientWidth, H = c.clientHeight;
+    c.innerHTML = '<svg id="graphSvg" style="width:100%;height:100%"></svg>';
+    const svg = d3.select('#graphSvg').attr('width', W).attr('height', H);
+    const g = svg.append('g');
+    svg.call(d3.zoom().scaleExtent([0.2, 3]).on('zoom', e => g.attr('transform', e.transform)));
+    
+    const colors = { arithmetic: '#10b981', algebra: '#6366f1', geometry: '#f59e0b', analysis: '#ef4444', probability: '#8b5cf6', statistics: '#06b6d4', discrete: '#84cc16', number_theory: '#ec4899', topology: '#f97316' };
+    
+    const sim = d3.forceSimulation(graphData.nodes)
+        .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(100))
+        .force('charge', d3.forceManyBody().strength(-350))
+        .force('center', d3.forceCenter(W / 2, H / 2))
+        .force('collision', d3.forceCollide().radius(32));
+    
+    // 箭头
+    svg.append('defs').append('marker').attr('id', 'arr').attr('viewBox', '0 -5 10 10').attr('refX', 22).attr('refY', 0).attr('orient', 'auto').attr('markerWidth', 6).attr('markerHeight', 6)
+        .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#94a3b8');
+    
+    const link = g.append('g').selectAll('line').data(graphData.links).enter().append('line')
+        .attr('stroke', '#94a3b8').attr('stroke-width', 1.5).attr('stroke-opacity', 0.6).attr('marker-end', 'url(#arr)');
+    
+    const node = g.append('g').selectAll('g').data(graphData.nodes).enter().append('g')
+        .attr('cursor', 'pointer')
+        .call(d3.drag()
+            .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+    
+    node.append('circle')
+        .attr('r', d => d.isRoot ? 18 : 13)
+        .attr('fill', d => d.isRoot ? '#ef4444' : (colors[d.branch] || '#94a3b8'))
+        .attr('stroke', '#fff').attr('stroke-width', 2.5);
+    
+    node.append('text').attr('dx', 16).attr('dy', 4)
+        .text(d => (d.name || '').substring(0, 10))
+        .attr('font-size', '10px').attr('fill', '#475569');
+    
+    // 点击显示浮动菜单
+    node.on('click', (e, d) => {
+        e.stopPropagation();
+        showContextMenu(e, d);
+        // 同时高亮列表中对应行
+        document.querySelectorAll('.node-list-row').forEach(r => r.classList.remove('active'));
+        const row = document.getElementById('row-' + d.id);
+        if (row) { row.classList.add('active'); row.scrollIntoView({ block: 'nearest' }); }
+    });
+    
+    sim.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+}
+
+function renderNodeList() {
+    const list = document.getElementById('graphNodeList');
+    const count = document.getElementById('graphNodeCount');
+    if (!list) return;
+    
+    count.textContent = `(${graphData.nodes.length})`;
+    
+    const colors = { arithmetic: '#10b981', algebra: '#6366f1', geometry: '#f59e0b', analysis: '#ef4444', probability: '#8b5cf6', statistics: '#06b6d4', discrete: '#84cc16', number_theory: '#ec4899', topology: '#f97316' };
+    
+    list.innerHTML = graphData.nodes.map(n => {
+        const detail = graphNodesMap[n.id] || {};
+        const prereqCount = (detail.prerequisites || []).length;
+        const color = n.isRoot ? '#ef4444' : (colors[n.branch] || '#94a3b8');
+        return `
+            <div id="row-${n.id}" class="node-list-row" onclick="ctxNode={id:'${n.id}',name:'${n.name}'};ctxView()" style="padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:all .15s">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.name}</div>
+                        <div style="font-size:.75em;color:var(--text-secondary)">${BRANCH_NAMES[n.branch] || n.branch || ''} · 前置${prereqCount}个</div>
+                    </div>
+                    <div style="display:flex;gap:4px;flex-shrink:0">
+                        <button onclick="event.stopPropagation();ctxNode={id:'${n.id}',name:'${n.name}'};ctxEdit()" style="border:none;background:transparent;cursor:pointer;padding:2px 4px;border-radius:4px;font-size:.8em" title="编辑">✏️</button>
+                        <button onclick="event.stopPropagation();ctxNode={id:'${n.id}',name:'${n.name}'};ctxDelete()" style="border:none;background:transparent;cursor:pointer;padding:2px 4px;border-radius:4px;font-size:.8em" title="删除">🗑️</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // 添加列表行样式
+    if (!document.getElementById('listRowStyle')) {
+        const s = document.createElement('style');
+        s.id = 'listRowStyle';
+        s.textContent = `.node-list-row:hover{background:var(--bg);border-color:var(--border)!important}.node-list-row.active{background:#ede9fe;border-color:var(--primary)!important}`;
+        document.head.appendChild(s);
+    }
+}
+
+async function openEditModalById(nodeId) {
+    try {
+        const res = await fetch(`${API}/nodes/${nodeId}`);
+        const data = await res.json();
+        editNode = data.node;
+        openEditModal(editNode);
+    } catch(e) { showToast('获取节点失败'); }
+}
+
+function addNewNodeFromGraph() { document.querySelectorAll('.menu-item')[1].click(); }
+function closeGraphModal() { document.getElementById('graphNodeModal').classList.add('hidden'); }
+
+// 初始化
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

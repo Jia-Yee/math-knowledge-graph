@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Knowledge Dependency Edge",
+  "description": "知识依赖关系边定义",
+  "type": "object",
+  "required": ["source", "target", "relation"],
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "源节点ID（前置知识）"
+    },
+    "target": {
+      "type": "string",
+      "description": "目标节点ID（后续知识）"
+    },
+    "relation": {
+      "type": "string",
+      "enum": ["requires", "extends", "generalizes", "applies_to", "related_to"],
+      "description": "关系类型"
+    },
+    "strength": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "依赖强度 1-10"
+    },
+    "description": {
+      "type": "string",
+      "description": "关系说明"
+    }
+  }
+}

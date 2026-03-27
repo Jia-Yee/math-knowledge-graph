@@ -1,0 +1,768 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""补充 Logic 分支的知识点 - 依据用户提供的详细大纲"""
+
+import json
+
+# 读取现有数据
+with open('data/core-nodes.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+    nodes = data.get('nodes', [])
+
+existing_ids = [n['id'] for n in nodes]
+
+# 新的 Logic 节点
+new_logic_nodes = [
+    # ========== 命题逻辑 - 基本概念 ==========
+    {
+        'id': 'logic_atomic_proposition',
+        'type': 'concept',
+        'name': {'zh': '原子命题', 'en': 'Atomic Proposition'},
+        'description': {'zh': '不可再分的最简单命题，是命题逻辑的基本单元。如"今天下雨"、"2是素数"等。', 'en': ''},
+        'level': 'senior',
+        'branch': 'logic',
+        'tags': ['高中', '数学'],
+        'prerequisites': ['s_sen8'],
+        'difficulty': 2,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_truth_table',
+        'type': 'concept',
+        'name': {'zh': '真值表', 'en': 'Truth Table'},
+        'description': {'zh': '列出所有可能的真值组合，定义逻辑联结词并判断公式真假的表格工具。', 'en': ''},
+        'level': 'senior',
+        'branch': 'logic',
+        'tags': ['高中', '数学'],
+        'prerequisites': ['s_sen12'],
+        'difficulty': 3,
+        'importance': 9,
+        'estimated_minutes': 90
+    },
+    {
+        'id': 'logic_well_formed_formula',
+        'type': 'concept',
+        'name': {'zh': '合式公式', 'en': 'Well-Formed Formula'},
+        'description': {'zh': '由原子命题和联结词按递归规则构成的合法字符串，是命题逻辑中的合法表达式。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_atomic_proposition'],
+        'difficulty': 4,
+        'importance': 8,
+        'estimated_minutes': 120
+    },
+    
+    # ========== 命题逻辑 - 语义与赋值 ==========
+    {
+        'id': 'logic_assignment',
+        'type': 'concept',
+        'name': {'zh': '赋值', 'en': 'Assignment'},
+        'description': {'zh': '给每个原子命题指派一个真值（真或假）的函数，是命题逻辑语义学的核心概念。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_truth_table'],
+        'difficulty': 4,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_tautology',
+        'type': 'concept',
+        'name': {'zh': '重言式', 'en': 'Tautology'},
+        'description': {'zh': '在所有赋值下均为真的公式，又称永真式。如p∨¬p、p→p等。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_assignment'],
+        'difficulty': 4,
+        'importance': 9,
+        'estimated_minutes': 90
+    },
+    {
+        'id': 'logic_contradiction',
+        'type': 'concept',
+        'name': {'zh': '矛盾式', 'en': 'Contradiction'},
+        'description': {'zh': '在所有赋值下均为假的公式，又称永假式。如p∧¬p。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_assignment'],
+        'difficulty': 3,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_satisfiable',
+        'type': 'concept',
+        'name': {'zh': '可满足式', 'en': 'Satisfiable Formula'},
+        'description': {'zh': '至少存在一个赋值使其为真的公式。是介于重言式和矛盾式之间的概念。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_tautology'],
+        'difficulty': 4,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    
+    # ========== 命题逻辑 - 等值演算与范式 ==========
+    {
+        'id': 'logic_logical_equivalence',
+        'type': 'concept',
+        'name': {'zh': '逻辑等价', 'en': 'Logical Equivalence'},
+        'description': {'zh': '两个公式在所有赋值下真值相同的关系。记作A≡B。常用等价律包括德摩根律、吸收律、分配律等。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_tautology'],
+        'difficulty': 5,
+        'importance': 9,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_dnf',
+        'type': 'concept',
+        'name': {'zh': '析取范式', 'en': 'Disjunctive Normal Form'},
+        'description': {'zh': '若干合取项的析取形式的公式。是命题公式的一种标准范式。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_logical_equivalence'],
+        'difficulty': 5,
+        'importance': 8,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_cnf',
+        'type': 'concept',
+        'name': {'zh': '合取范式', 'en': 'Conjunctive Normal Form'},
+        'description': {'zh': '若干析取项的合取形式的公式。SAT问题的标准形式。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_logical_equivalence'],
+        'difficulty': 5,
+        'importance': 8,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_full_dnf',
+        'type': 'concept',
+        'name': {'zh': '主析取范式', 'en': 'Full Disjunctive Normal Form'},
+        'description': {'zh': '极小项（所有原子或其否定恰好出现一次）的析取。唯一表示一个公式的真值函数。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_dnf'],
+        'difficulty': 6,
+        'importance': 8,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_full_cnf',
+        'type': 'concept',
+        'name': {'zh': '主合取范式', 'en': 'Full Conjunctive Normal Form'},
+        'description': {'zh': '极大项的合取。与主析取范式对偶，唯一表示一个公式。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_cnf'],
+        'difficulty': 6,
+        'importance': 8,
+        'estimated_minutes': 120
+    },
+    
+    # ========== 命题逻辑 - 推理系统 ==========
+    {
+        'id': 'logic_natural_deduction',
+        'type': 'method',
+        'name': {'zh': '自然演绎', 'en': 'Natural Deduction'},
+        'description': {'zh': '使用引入规则和消去规则进行推理的证明系统。接近人类实际推理方式。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_propositional_advanced'],
+        'difficulty': 6,
+        'importance': 9,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_deduction_theorem',
+        'type': 'theorem',
+        'name': {'zh': '演绎定理', 'en': 'Deduction Theorem'},
+        'description': {'zh': '若Γ∪{A}⊢B，则Γ⊢A→B。是命题逻辑证明论的基本定理。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_natural_deduction'],
+        'difficulty': 7,
+        'importance': 8,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_soundness',
+        'type': 'theorem',
+        'name': {'zh': '可靠性定理', 'en': 'Soundness Theorem'},
+        'description': {'zh': '所有可证的公式都是重言式。即语法正确的证明必保真。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_natural_deduction'],
+        'difficulty': 7,
+        'importance': 9,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_completeness',
+        'type': 'theorem',
+        'name': {'zh': '完备性定理', 'en': 'Completeness Theorem'},
+        'description': {'zh': '所有重言式都可证。即语义上为真的公式必有语法证明。哥德尔1929年证明。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_soundness'],
+        'difficulty': 8,
+        'importance': 10,
+        'estimated_minutes': 240
+    },
+    
+    # ========== 一阶逻辑 - 语言结构 ==========
+    {
+        'id': 'logic_constant',
+        'type': 'concept',
+        'name': {'zh': '个体常元', 'en': 'Individual Constant'},
+        'description': {'zh': '表示特定对象的符号。如a、b、c表示某个具体的人或数。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_predicate_calculus'],
+        'difficulty': 4,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_function_symbol',
+        'type': 'concept',
+        'name': {'zh': '函数符号', 'en': 'Function Symbol'},
+        'description': {'zh': '表示函数的符号。如f(x)、g(x,y)等，用于构造项。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_constant'],
+        'difficulty': 4,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_predicate_symbol',
+        'type': 'concept',
+        'name': {'zh': '谓词符号', 'en': 'Predicate Symbol'},
+        'description': {'zh': '表示关系的符号。如P(x)表示"x是质数"，EQ(x,y)表示"x等于y"。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_constant'],
+        'difficulty': 4,
+        'importance': 9,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_term',
+        'type': 'concept',
+        'name': {'zh': '项', 'en': 'Term'},
+        'description': {'zh': '由常元、变元和函数复合而成的表达式，表示对象。如f(g(x),a)。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_function_symbol'],
+        'difficulty': 5,
+        'importance': 9,
+        'estimated_minutes': 90
+    },
+    {
+        'id': 'logic_atomic_formula',
+        'type': 'concept',
+        'name': {'zh': '原子公式', 'en': 'Atomic Formula'},
+        'description': {'zh': '谓词应用于项形成的公式，是一阶公式的基本单元。如P(x)、EQ(x,y)。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_term', 'logic_predicate_symbol'],
+        'difficulty': 5,
+        'importance': 9,
+        'estimated_minutes': 90
+    },
+    
+    # ========== 一阶逻辑 - 语义 ==========
+    {
+        'id': 'logic_structure_model',
+        'type': 'concept',
+        'name': {'zh': '结构（模型）', 'en': 'Structure (Model)'},
+        'description': {'zh': '一阶语言的解释，包括论域（非空集合）及对常元/函数/谓词的解释。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_atomic_formula'],
+        'difficulty': 6,
+        'importance': 9,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_satisfaction',
+        'type': 'concept',
+        'name': {'zh': '满足关系', 'en': 'Satisfaction Relation'},
+        'description': {'zh': '在给定结构和赋值下，公式为真的定义。由塔尔斯基提出，是形式语义学的基石。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_structure_model'],
+        'difficulty': 7,
+        'importance': 9,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_validity',
+        'type': 'concept',
+        'name': {'zh': '有效性', 'en': 'Validity'},
+        'description': {'zh': '在一阶逻辑中，指公式在所有结构下都为真。又称普遍有效。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_satisfaction'],
+        'difficulty': 6,
+        'importance': 9,
+        'estimated_minutes': 90
+    },
+    {
+        'id': 'logic_semantic_consequence',
+        'type': 'concept',
+        'name': {'zh': '语义推论', 'en': 'Semantic Consequence'},
+        'description': {'zh': 'Γ⊨φ表示所有使Γ中公式为真的结构也使φ为真。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_validity'],
+        'difficulty': 7,
+        'importance': 9,
+        'estimated_minutes': 120
+    },
+    
+    # ========== 一阶逻辑 - 元定理 ==========
+    {
+        'id': 'logic_compactness',
+        'type': 'theorem',
+        'name': {'zh': '紧致性定理', 'en': 'Compactness Theorem'},
+        'description': {'zh': '一个公式集有模型当且仅当其任意有限子集有模型。是模型论的核心定理。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_predicate_calculus'],
+        'difficulty': 8,
+        'importance': 9,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_lowenheim_skolem',
+        'type': 'theorem',
+        'type': 'theorem',
+        'name': {'zh': '勒文海姆-斯科伦定理', 'en': 'Lowenheim-Skolem Theorem'},
+        'description': {'zh': '向下形式：可数语言的理论有无限模型则必有可数模型。向上形式：理论有任意大有限模型则必有不可数模型。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_compactness'],
+        'difficulty': 9,
+        'importance': 9,
+        'estimated_minutes': 240
+    },
+    
+    # ========== 公理集合论 - ZFC ==========
+    {
+        'id': 'logic_extensionality',
+        'type': 'axiom',
+        'name': {'zh': '外延公理', 'en': 'Axiom of Extensionality'},
+        'description': {'zh': '两个集合相等当且仅当它们有相同元素。ZFC的第一条公理。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_set_theory'],
+        'difficulty': 5,
+        'importance': 9,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_pairing',
+        'type': 'axiom',
+        'name': {'zh': '对集公理', 'en': 'Axiom of Pairing'},
+        'description': {'zh': '对任意a,b，存在{a,b}。可推出单点集和有序对。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_extensionality'],
+        'difficulty': 5,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_union',
+        'type': 'axiom',
+        'name': {'zh': '并集公理', 'en': 'Axiom of Union'},
+        'description': {'zh': '对任意集合A，存在∪A（所有A中元素的并）。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_pairing'],
+        'difficulty': 5,
+        'importance': 8,
+        'estimated_minutes': 60
+    },
+    {
+        'id': 'logic_power_set',
+        'type': 'axiom',
+        'name': {'zh': '幂集公理', 'en': 'Axiom of Power Set'},
+        'description': {'zh': '对任意集合A，存在P(A)（A的所有子集构成的集合）。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_union'],
+        'difficulty': 6,
+        'importance': 9,
+        'estimated_minutes': 90
+    },
+    {
+        'id': 'logic_infinity',
+        'type': 'axiom',
+        'name': {'zh': '无穷公理', 'en': 'Axiom of Infinity'},
+        'description': {'zh': '存在归纳集（包含空集且对后继封闭的集合），从而保证自然数集合的存在。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_power_set'],
+        'difficulty': 6,
+        'importance': 9,
+        'estimated_minutes': 90
+    },
+    {
+        'id': 'logic_separation',
+        'type': 'axiom',
+        'name': {'zh': '分离公理模式', 'en': 'Axiom Schema of Separation'},
+        'description': {'zh': '对任意集合A和公式φ，存在{x∈A|φ(x)}。是限制性的集合构造方式，避免罗素悖论。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_infinity'],
+        'difficulty': 7,
+        'importance': 9,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_replacement',
+        'type': 'axiom',
+        'name': {'zh': '替换公理模式', 'en': 'Axiom Schema of Replacement'},
+        'description': {'zh': '若φ是函数性公式，则函数的值域是集合。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_separation'],
+        'difficulty': 7,
+        'importance': 8,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_foundation',
+        'type': 'axiom',
+        'name': {'zh': '正则公理', 'en': 'Axiom of Foundation'},
+        'description': {'zh': '每个非空集合都有与自身不相交的元素。禁止循环隶属，x∈x不存在。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_replacement'],
+        'difficulty': 7,
+        'importance': 8,
+        'estimated_minutes': 90
+    },
+    
+    # ========== 证明论 ==========
+    {
+        'id': 'logic_hilbert_system',
+        'type': 'concept',
+        'name': {'zh': '希尔伯特式系统', 'en': 'Hilbert System'},
+        'description': {'zh': '公理多、规则少的证明系统。通常只有一条推理规则（分离规则MP）和若干公理模式。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_proof_theory'],
+        'difficulty': 8,
+        'importance': 8,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_sequent_calculus',
+        'type': 'method',
+        'name': {'zh': '序列演算', 'en': 'Sequent Calculus'},
+        'description': {'zh': '根岑发展的证明论核心工具。以序列（Γ⊢Δ）为基本证明对象。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_hilbert_system'],
+        'difficulty': 9,
+        'importance': 8,
+        'estimated_minutes': 240
+    },
+    {
+        'id': 'logic_cut_elimination',
+        'type': 'theorem',
+        'name': {'zh': '切割消除定理', 'en': 'Cut-Elimination Theorem'},
+        'description': {'zh': '任何证明可以消去"切割规则"，得到具有子公式性质的证明。', 'en': ''},
+        'level': 'phd',
+        'branch': 'logic',
+        'tags': ['博士', '数学'],
+        'prerequisites': ['logic_sequent_calculus'],
+        'difficulty': 10,
+        'importance': 9,
+        'estimated_minutes': 300
+    },
+    {
+        'id': 'logic_consistency_proof',
+        'type': 'concept',
+        'name': {'zh': '一致性证明', 'en': 'Consistency Proof'},
+        'description': {'zh': '证明形式系统不会推出矛盾。用超穷归纳法证明算术的一致性。', 'en': ''},
+        'level': 'phd',
+        'branch': 'logic',
+        'tags': ['博士', '数学'],
+        'prerequisites': ['logic_cut_elimination'],
+        'difficulty': 10,
+        'importance': 10,
+        'estimated_minutes': 360
+    },
+    
+    # ========== 递归论 ==========
+    {
+        'id': 'logic_primitive_recursive',
+        'type': 'concept',
+        'name': {'zh': '原始递归函数', 'en': 'Primitive Recursive Functions'},
+        'description': {'zh': '由基本函数通过复合和原始递归构造的函数类。如加法、乘法、阶乘等。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学', '计算机科学'],
+        'prerequisites': ['logic_recursion'],
+        'difficulty': 8,
+        'importance': 9,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_partial_recursive',
+        'type': 'concept',
+        'name': {'zh': '部分递归函数', 'en': 'Partial Recursive Functions'},
+        'description': {'zh': '允许使用μ算子（极小化）的递归函数，是图灵可计算函数的另一种等价定义。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学', '计算机科学'],
+        'prerequisites': ['logic_primitive_recursive'],
+        'difficulty': 9,
+        'importance': 9,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_church_thesis',
+        'type': 'hypothesis',
+        'name': {'zh': '丘奇-图灵论题', 'en': 'Church-Turing Thesis'},
+        'description': {'zh': '可计算函数等同于图灵可计算函数（哲学性论题）。无法形式证明，但有广泛证据支持。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学', '计算机科学'],
+        'prerequisites': ['logic_partial_recursive'],
+        'difficulty': 8,
+        'importance': 10,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_halting_problem',
+        'type': 'theorem',
+        'name': {'zh': '停机问题', 'en': 'Halting Problem'},
+        'description': {'zh': '不存在程序能判定任意程序是否停机。递归论的基本不可判定结果。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学', '计算机科学'],
+        'prerequisites': ['logic_church_thesis'],
+        'difficulty': 8,
+        'importance': 10,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_arithmetic_hierarchy',
+        'type': 'concept',
+        'name': {'zh': '算术层次', 'en': 'Arithmetic Hierarchy'},
+        'description': {'zh': '根据公式的量化复杂度对自然数集进行分类：Σ_n^0, Π_n^0, Δ_n^0。', 'en': ''},
+        'level': 'phd',
+        'branch': 'logic',
+        'tags': ['博士', '数学'],
+        'prerequisites': ['logic_halting_problem'],
+        'difficulty': 10,
+        'importance': 8,
+        'estimated_minutes': 240
+    },
+    {
+        'id': 'logic_decidable_theory',
+        'type': 'concept',
+        'name': {'zh': '可判定理论', 'en': 'Decidable Theory'},
+        'description': {'zh': '一个理论是可判定的，如果其定理集是递归的。如实闭域理论可判定，但自然数算术不可判定。', 'en': ''},
+        'level': 'phd',
+        'branch': 'logic',
+        'tags': ['博士', '数学'],
+        'prerequisites': ['logic_arithmetic_hierarchy'],
+        'difficulty': 10,
+        'importance': 9,
+        'estimated_minutes': 240
+    },
+    
+    # ========== 哥德尔不完备定理相关 ==========
+    {
+        'id': 'logic_goedel_numbering',
+        'type': 'concept',
+        'name': {'zh': '哥德尔编码', 'en': 'Godel Numbering'},
+        'description': {'zh': '将语法（公式、证明）编码为自然数的技术，是算术化的基础。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_godel_incompleteness'],
+        'difficulty': 9,
+        'importance': 10,
+        'estimated_minutes': 240
+    },
+    {
+        'id': 'logic_expressibility',
+        'type': 'concept',
+        'name': {'zh': '可表达性', 'en': 'Expressibility'},
+        'description': {'zh': '在算术中表达"证明"关系的能力。是哥德尔不完备定理证明的关键。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_goedel_numbering'],
+        'difficulty': 9,
+        'importance': 9,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_russell_paradox',
+        'type': 'concept',
+        'name': {'zh': '罗素悖论', 'en': "Russell's Paradox"},
+        'description': {'zh': '设R={x|x∉x}，则R∈R iff R∉R，导致矛盾。促使公理集合论的发展。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学'],
+        'prerequisites': ['logic_set_theory'],
+        'difficulty': 6,
+        'importance': 10,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_type_theory_russell',
+        'type': 'concept',
+        'name': {'zh': '罗素类型论', 'en': 'Russell Type Theory'},
+        'description': {'zh': '罗素为避免悖论提出的类型论，将集合分层：个体、个体的集合、集合的集合等。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_russell_paradox'],
+        'difficulty': 8,
+        'importance': 8,
+        'estimated_minutes': 180
+    },
+    
+    # ========== 其他重要概念 ==========
+    {
+        'id': 'logic_lambda_calculus',
+        'type': 'concept',
+        'name': {'zh': 'λ演算', 'en': 'Lambda Calculus'},
+        'description': {'zh': '研究函数抽象和应用的形式系统，与可计算性和编程语言语义紧密相关。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学', '计算机科学'],
+        'prerequisites': ['logic_type_theory'],
+        'difficulty': 9,
+        'importance': 9,
+        'estimated_minutes': 240
+    },
+    {
+        'id': 'logic_topos',
+        'type': 'concept',
+        'name': {'zh': '拓扑斯理论', 'en': 'Topos Theory'},
+        'description': {'zh': '用范畴论作为数学基础的理论，是范畴论逻辑的核心。', 'en': ''},
+        'level': 'phd',
+        'branch': 'logic',
+        'tags': ['博士', '数学'],
+        'prerequisites': ['logic_category_theory'],
+        'difficulty': 10,
+        'importance': 8,
+        'estimated_minutes': 360
+    },
+    {
+        'id': 'logic_second_order',
+        'type': 'concept',
+        'name': {'zh': '二阶逻辑', 'en': 'Second-Order Logic'},
+        'description': {'zh': '允许量化谓词和函数的逻辑。表达力强于一阶逻辑，但失去完备性和紧致性。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学'],
+        'prerequisites': ['logic_predicate_calculus'],
+        'difficulty': 9,
+        'importance': 8,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_multi_valued',
+        'type': 'concept',
+        'name': {'zh': '多值逻辑', 'en': 'Multi-Valued Logic'},
+        'description': {'zh': '真值不限于真/假二元，可有多个真值。如三值逻辑、模糊逻辑。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学', '计算机科学'],
+        'prerequisites': ['logic_propositional_advanced'],
+        'difficulty': 7,
+        'importance': 7,
+        'estimated_minutes': 120
+    },
+    {
+        'id': 'logic_provability',
+        'type': 'concept',
+        'name': {'zh': '可证明性逻辑', 'en': 'Provability Logic'},
+        'description': {'zh': '研究"可证明"模态概念的逻辑。如GL系统（哥德尔-勒布文逻辑）。', 'en': ''},
+        'level': 'phd',
+        'branch': 'logic',
+        'tags': ['博士', '数学'],
+        'prerequisites': ['logic_modal', 'logic_godel_incompleteness'],
+        'difficulty': 10,
+        'importance': 8,
+        'estimated_minutes': 240
+    },
+    {
+        'id': 'logic_intuitionistic',
+        'type': 'concept',
+        'name': {'zh': '直觉主义逻辑', 'en': 'Intuitionistic Logic'},
+        'description': {'zh': '基于数学建构主义的逻辑，拒绝排中律。不承认非构造性存在证明。', 'en': ''},
+        'level': 'master',
+        'branch': 'logic',
+        'tags': ['硕士', '数学', '哲学'],
+        'prerequisites': ['logic_propositional_advanced'],
+        'difficulty': 8,
+        'importance': 8,
+        'estimated_minutes': 180
+    },
+    {
+        'id': 'logic_philosophy_foundations',
+        'type': 'concept',
+        'name': {'zh': '数学基础哲学', 'en': 'Philosophy of Mathematical Foundations'},
+        'description': {'zh': '探讨数学本质的哲学理论：逻辑主义（数学归约为逻辑）、形式主义（符号操作）、直觉主义（心智构造）、柏拉图主义（数学对象客观存在）。', 'en': ''},
+        'level': 'undergrad',
+        'branch': 'logic',
+        'tags': ['本科', '数学', '哲学'],
+        'prerequisites': ['logic_godel_incompleteness'],
+        'difficulty': 7,
+        'importance': 8,
+        'estimated_minutes': 180
+    }
+]

@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Math Knowledge Node",
+  "description": "数学知识图谱节点定义",
+  "type": "object",
+  "required": ["id", "type", "name", "level", "branch"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "唯一标识符，使用小写和下划线"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["concept", "theorem", "branch", "conjecture", "formula"],
+      "description": "节点类型"
+    },
+    "name": {
+      "type": "object",
+      "required": ["zh"],
+      "properties": {
+        "zh": { "type": "string" },
+        "en": { "type": "string" }
+      }
+    },
+    "description": {
+      "type": "object",
+      "properties": {
+        "zh": { "type": "string" },
+        "en": { "type": "string" }
+      }
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "primary", "primary_1", "primary_2", "primary_3", "primary_4", "primary_5", "primary_6",
+        "junior", "junior_1", "junior_2", "junior_3",
+        "senior", "senior_1", "senior_2", "senior_3",
+        "undergrad", "master", "phd", "research"
+      ],
+      "description": "学习阶段：primary=小学(1-6年级), junior=初中(1-3年级), senior=高中(1-3年级), undergrad=大学本科, master=硕士, phd=博士, research=研究级"
+    },
+    "branch": {
+      "type": "string",
+      "enum": [
+        "arithmetic", "algebra", "geometry", "analysis",
+        "probability", "statistics", "discrete", "topology",
+        "number_theory", "logic", "applied", "other"
+      ],
+      "description": "数学分支"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "前置知识节点ID列表"
+    },
+    "difficulty": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "难度等级 1-10"
+    },
+    "importance": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "重要性 1-10"
+    },
+    "estimated_minutes": {
+      "type": "integer",
+      "description": "预计学习时间（分钟）"
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["video", "article", "book", "exercise"] },
+          "title": { "type": "string" },
+          "url": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,899 @@
+{
+  "nodes": [
+    {
+      "id": "math",
+      "name": {
+        "zh": "数学",
+        "en": "Mathematics"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": null,
+      "prerequisites": [],
+      "description": {
+        "zh": "数学是研究数量、结构、变化、空间以及信息的学科"
+      }
+    },
+    {
+      "id": "arithmetic",
+      "name": {
+        "zh": "算术",
+        "en": "Arithmetic"
+      },
+      "type": "category",
+      "branch": "arithmetic",
+      "grade": null,
+      "prerequisites": [
+        "math"
+      ],
+      "description": {
+        "zh": "研究数的性质和运算"
+      }
+    },
+    {
+      "id": "geometry",
+      "name": {
+        "zh": "几何",
+        "en": "Geometry"
+      },
+      "type": "category",
+      "branch": "geometry",
+      "grade": null,
+      "prerequisites": [
+        "math"
+      ],
+      "description": {
+        "zh": "研究空间结构及性质"
+      }
+    },
+    {
+      "id": "measurement",
+      "name": {
+        "zh": "度量",
+        "en": "Measurement"
+      },
+      "type": "category",
+      "branch": "measurement",
+      "grade": null,
+      "prerequisites": [
+        "math"
+      ],
+      "description": {
+        "zh": "研究测量单位和方法"
+      }
+    },
+    {
+      "id": "statistics",
+      "name": {
+        "zh": "统计",
+        "en": "Statistics"
+      },
+      "type": "category",
+      "branch": "statistics",
+      "grade": null,
+      "prerequisites": [
+        "math"
+      ],
+      "description": {
+        "zh": "收集、分析和解释数据"
+      }
+    },
+    {
+      "id": "algebra",
+      "name": {
+        "zh": "代数",
+        "en": "Algebra"
+      },
+      "type": "category",
+      "branch": "algebra",
+      "grade": null,
+      "prerequisites": [
+        "math"
+      ],
+      "description": {
+        "zh": "研究符号运算和方程"
+      }
+    },
+    {
+      "id": "probability",
+      "name": {
+        "zh": "概率",
+        "en": "Probability"
+      },
+      "type": "category",
+      "branch": "probability",
+      "grade": null,
+      "prerequisites": [
+        "math"
+      ],
+      "description": {
+        "zh": "研究随机现象"
+      }
+    },
+    {
+      "id": "analysis",
+      "name": {
+        "zh": "分析",
+        "en": "Analysis"
+      },
+      "type": "category",
+      "branch": "analysis",
+      "grade": null,
+      "prerequisites": [
+        "math"
+      ],
+      "description": {
+        "zh": "研究极限、微分、积分"
+      }
+    },
+    {
+      "id": "grade_p1",
+      "name": {
+        "zh": "小学一年级",
+        "en": "Grade 1 (Primary)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_p2",
+      "name": {
+        "zh": "小学二年级",
+        "en": "Grade 2 (Primary)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_p3",
+      "name": {
+        "zh": "小学三年级",
+        "en": "Grade 3 (Primary)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_p4",
+      "name": {
+        "zh": "小学四年级",
+        "en": "Grade 4 (Primary)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "小学四年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_p5",
+      "name": {
+        "zh": "小学五年级",
+        "en": "Grade 5 (Primary)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "小学五年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_p6",
+      "name": {
+        "zh": "小学六年级",
+        "en": "Grade 6 (Primary)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "小学六年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_j1",
+      "name": {
+        "zh": "初中一年级",
+        "en": "Grade 7 (Junior)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "初中一年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_j2",
+      "name": {
+        "zh": "初中二年级",
+        "en": "Grade 8 (Junior)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "初中二年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_j3",
+      "name": {
+        "zh": "初中三年级",
+        "en": "Grade 9 (Junior)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "初中三年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_h1",
+      "name": {
+        "zh": "高中一年级",
+        "en": "Grade 10 (Senior)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "高中一年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_h2",
+      "name": {
+        "zh": "高中二年级",
+        "en": "Grade 11 (Senior)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "高中二年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_h3",
+      "name": {
+        "zh": "高中三年级",
+        "en": "Grade 12 (Senior)"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "高中三年级",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "grade_university",
+      "name": {
+        "zh": "大学及以上",
+        "en": "University"
+      },
+      "type": "category",
+      "branch": "math",
+      "grade": "大学及以上",
+      "prerequisites": [
+        "math"
+      ]
+    },
+    {
+      "id": "g1_count_1_5",
+      "name": {
+        "zh": "数数与认识1-5",
+        "en": "Count 1-5"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "arithmetic",
+        "grade_p1"
+      ]
+    },
+    {
+      "id": "g1_count_6_10",
+      "name": {
+        "zh": "认识6-10",
+        "en": "Count 6-10"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_1_5"
+      ]
+    },
+    {
+      "id": "g1_ordinal",
+      "name": {
+        "zh": "序数与基数",
+        "en": "Ordinal and Cardinal"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_1_5"
+      ]
+    },
+    {
+      "id": "g1_compare_size",
+      "name": {
+        "zh": "比较大小",
+        "en": "Compare Numbers"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_6_10"
+      ]
+    },
+    {
+      "id": "g1_add_sub_5",
+      "name": {
+        "zh": "5以内加减法",
+        "en": "Add/Sub within 5"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_1_5",
+        "g1_ordinal"
+      ]
+    },
+    {
+      "id": "g1_add_sub_10",
+      "name": {
+        "zh": "10以内加减法",
+        "en": "Add/Sub within 10"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_6_10",
+        "g1_add_sub_5"
+      ]
+    },
+    {
+      "id": "g1_decompose_10",
+      "name": {
+        "zh": "10的分与合",
+        "en": "Decompose 10"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_6_10"
+      ]
+    },
+    {
+      "id": "g1_count_11_20",
+      "name": {
+        "zh": "认识11-20",
+        "en": "Count 11-20"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_6_10",
+        "g1_decompose_10"
+      ]
+    },
+    {
+      "id": "g1_place_value",
+      "name": {
+        "zh": "十位与个位",
+        "en": "Place Value"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_11_20"
+      ]
+    },
+    {
+      "id": "g1_add_carry",
+      "name": {
+        "zh": "20以内进位加法",
+        "en": "Carry Addition within 20"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_add_sub_10",
+        "g1_decompose_10",
+        "g1_count_11_20"
+      ]
+    },
+    {
+      "id": "g1_sub_borrow",
+      "name": {
+        "zh": "20以内退位减法",
+        "en": "Borrow Subtraction within 20"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_add_carry",
+        "g1_place_value"
+      ]
+    },
+    {
+      "id": "g1_count_100",
+      "name": {
+        "zh": "100以内数的认识",
+        "en": "Count within 100"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_place_value"
+      ]
+    },
+    {
+      "id": "g1_rmb",
+      "name": {
+        "zh": "认识人民币",
+        "en": "RMB"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "arithmetic",
+        "grade_p1"
+      ]
+    },
+    {
+      "id": "g1_shapes_3d",
+      "name": {
+        "zh": "认识立体图形",
+        "en": "3D Shapes"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "geometry",
+        "grade_p1"
+      ]
+    },
+    {
+      "id": "g1_shapes_2d",
+      "name": {
+        "zh": "认识平面图形",
+        "en": "2D Shapes"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_shapes_3d"
+      ]
+    },
+    {
+      "id": "g1_position",
+      "name": {
+        "zh": "位置与方向",
+        "en": "Position and Direction"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "geometry",
+        "grade_p1"
+      ]
+    },
+    {
+      "id": "g1_compare_length",
+      "name": {
+        "zh": "比较长短",
+        "en": "Compare Length"
+      },
+      "type": "concept",
+      "branch": "measurement",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "measurement",
+        "grade_p1"
+      ]
+    },
+    {
+      "id": "g1_time_clock",
+      "name": {
+        "zh": "认识钟表",
+        "en": "Clock"
+      },
+      "type": "concept",
+      "branch": "measurement",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_count_6_10",
+        "measurement"
+      ]
+    },
+    {
+      "id": "g1_classify",
+      "name": {
+        "zh": "分类与整理",
+        "en": "Classification"
+      },
+      "type": "concept",
+      "branch": "statistics",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "statistics",
+        "grade_p1"
+      ]
+    },
+    {
+      "id": "g1_pictograph",
+      "name": {
+        "zh": "象形统计图",
+        "en": "Pictograph"
+      },
+      "type": "concept",
+      "branch": "statistics",
+      "grade": "小学一年级",
+      "prerequisites": [
+        "g1_classify",
+        "g1_count_6_10"
+      ]
+    },
+    {
+      "id": "g2_mult_basics",
+      "name": {
+        "zh": "乘法的初步认识",
+        "en": "Multiplication Basics"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "arithmetic",
+        "grade_p2"
+      ]
+    },
+    {
+      "id": "g2_mult_table",
+      "name": {
+        "zh": "表内乘法",
+        "en": "Multiplication Table"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "g2_mult_basics"
+      ]
+    },
+    {
+      "id": "g2_div_basics",
+      "name": {
+        "zh": "除法的初步认识",
+        "en": "Division Basics"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "g2_mult_table"
+      ]
+    },
+    {
+      "id": "g2_div_table",
+      "name": {
+        "zh": "表内除法",
+        "en": "Table Division"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "g2_div_basics",
+        "g2_mult_table"
+      ]
+    },
+    {
+      "id": "g2_remainder",
+      "name": {
+        "zh": "有余数的除法",
+        "en": "Division with Remainder"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "g2_div_table"
+      ]
+    },
+    {
+      "id": "g2_even_odd",
+      "name": {
+        "zh": "偶数与奇数",
+        "en": "Even and Odd"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "g2_mult_table"
+      ]
+    },
+    {
+      "id": "g2_angle_basics",
+      "name": {
+        "zh": "角的初步认识",
+        "en": "Angle Basics"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "geometry",
+        "grade_p2"
+      ]
+    },
+    {
+      "id": "g2_angle_types",
+      "name": {
+        "zh": "角的分类",
+        "en": "Angle Types"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "g2_angle_basics"
+      ]
+    },
+    {
+      "id": "g2_length_unit",
+      "name": {
+        "zh": "长度单位",
+        "en": "Length Units"
+      },
+      "type": "concept",
+      "branch": "measurement",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "measurement",
+        "grade_p2"
+      ]
+    },
+    {
+      "id": "g2_time_read",
+      "name": {
+        "zh": "认识时间",
+        "en": "Read Time"
+      },
+      "type": "concept",
+      "branch": "measurement",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "g1_time_clock"
+      ]
+    },
+    {
+      "id": "g2_data_collect",
+      "name": {
+        "zh": "数据收集",
+        "en": "Data Collection"
+      },
+      "type": "concept",
+      "branch": "statistics",
+      "grade": "小学二年级",
+      "prerequisites": [
+        "statistics",
+        "grade_p2"
+      ]
+    },
+    {
+      "id": "g3_number_10000",
+      "name": {
+        "zh": "万以内数的认识",
+        "en": "Numbers within 10000"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g1_count_100",
+        "grade_p3"
+      ]
+    },
+    {
+      "id": "g3_mult_2digit",
+      "name": {
+        "zh": "两位数乘一位数",
+        "en": "2-digit Multiplication"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g3_number_10000",
+        "g2_mult_table"
+      ]
+    },
+    {
+      "id": "g3_div_1digit",
+      "name": {
+        "zh": "一位数除法",
+        "en": "1-digit Division"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g3_number_10000",
+        "g2_div_table"
+      ]
+    },
+    {
+      "id": "g3_fraction_basics",
+      "name": {
+        "zh": "分数的初步认识",
+        "en": "Fraction Basics"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "arithmetic",
+        "grade_p3"
+      ]
+    },
+    {
+      "id": "g3_fraction_compare",
+      "name": {
+        "zh": "分数比较",
+        "en": "Compare Fractions"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g3_fraction_basics"
+      ]
+    },
+    {
+      "id": "g3_fraction_add_sub",
+      "name": {
+        "zh": "同分母分数加减",
+        "en": "Same Denominator Add/Sub"
+      },
+      "type": "concept",
+      "branch": "arithmetic",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g3_fraction_basics"
+      ]
+    },
+    {
+      "id": "g3_area_basics",
+      "name": {
+        "zh": "面积的认识",
+        "en": "Area Basics"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "geometry",
+        "grade_p3"
+      ]
+    },
+    {
+      "id": "g3_area_rect",
+      "name": {
+        "zh": "长方形面积",
+        "en": "Rectangle Area"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g3_area_basics",
+        "g3_mult_2digit"
+      ]
+    },
+    {
+      "id": "g3_area_square",
+      "name": {
+        "zh": "正方形面积",
+        "en": "Square Area"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g3_area_rect"
+      ]
+    },
+    {
+      "id": "g3_direction",
+      "name": {
+        "zh": "位置与方向",
+        "en": "Position and Direction"
+      },
+      "type": "concept",
+      "branch": "geometry",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "geometry",
+        "grade_p3"
+      ]
+    },
+    {
+      "id": "g3_time_year",
+      "name": {
+        "zh": "年月日",
+        "en": "Year Month Day"
+      },
+      "type": "concept",
+      "branch": "measurement",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "measurement",
+        "grade_p3"
+      ]
+    },
+    {
+      "id": "g3_time_24h",
+      "name": {
+        "zh": "24时计时法",
+        "en": "24-hour Clock"
+      },
+      "type": "concept",
+      "branch": "measurement",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "g3_time_year"
+      ]
+    },
+    {
+      "id": "g3_bar_chart",
+      "name": {
+        "zh": "条形统计图",
+        "en": "Bar Chart"
+      },
+      "type": "concept",
+      "branch": "statistics",
+      "grade": "小学三年级",
+      "prerequisites": [
+        "statistics",
+        "grade_p3"
+      ]
+    }
+  ]
+}

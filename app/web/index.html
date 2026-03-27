@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学知识图谱 - MathKG</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --primary:#6366f1;--primary-light:#818cf8;--bg:#f1f5f9;
+            --surface:#fff;--text:#1e293b;--text-secondary:#64748b;
+            --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+            --shadow-lg:0 4px 12px rgba(0,0,0,.1),0 16px 48px rgba(0,0,0,.08);
+        }
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+        .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+        .topbar-logo{display:flex;align-items:center;gap:10px;font-size:1.2em;font-weight:700;color:var(--primary)}
+        .topbar-logo .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1em}
+        .topbar-nav{display:flex;gap:4px}
+        .nav-btn{padding:8px 18px;border:none;background:transparent;border-radius:8px;font-size:.9em;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .2s}
+        .nav-btn:hover{background:var(--bg);color:var(--text)}
+        .nav-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff}
+        .topbar-right{display:flex;align-items:center;gap:16px}
+        .search-box{display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;gap:8px;width:220px;transition:all .2s}
+        .search-box:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+        .search-box input{border:none;background:transparent;outline:none;font-size:.9em;width:100%;color:var(--text)}
+        .search-box input::placeholder{color:var(--text-secondary)}
+        .main-layout{display:flex;height:calc(100vh - 64px);overflow:hidden}
+        .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:16px 0}
+        .sidebar-section{margin-bottom:20px}
+        .sidebar-title{font-size:.72em;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;padding:0 16px 8px}
+        .grade-filter{padding:0 8px}
+        .grade-btn{width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border:none;background:transparent;border-radius:8px;cursor:pointer;transition:all .15s;text-align:left;font-size:.86em;color:var(--text)}
+        .grade-btn:hover{background:var(--bg)}
+        .grade-btn.active{background:var(--primary);color:#fff}
+        .grade-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+        .grade-btn .grade-name{flex:1;font-weight:500}
+        .grade-btn .grade-count{font-size:.75em;opacity:.65;font-weight:400}
+        .grade-btn.active .grade-count{opacity:.9}
+        .stat-mini{padding:0 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .stat-mini-card{background:var(--bg);border-radius:10px;padding:12px;text-align:center}
+        .stat-mini-value{font-size:1.6em;font-weight:700;color:var(--primary);line-height:1}
+        .stat-mini-label{font-size:.72em;color:var(--text-secondary);margin-top:4px}
+        .branch-filter{padding:0 8px;display:flex;flex-wrap:wrap}
+        .branch-tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:.78em;margin:2px;cursor:pointer;border:1.5px solid var(--border);color:var(--text-secondary);background:var(--surface);transition:all .15s;font-weight:500}
+        .branch-tag:hover{border-color:var(--primary);color:var(--primary)}
+        .branch-tag.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .main-content{flex:1;overflow-y:auto;padding:20px}
+        .graph-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+        .mini-btn{padding:5px 13px;border:1px solid var(--border);background:var(--surface);border-radius:7px;font-size:.83em;cursor:pointer;transition:all .15s;color:var(--text)}
+        .mini-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .mini-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .graph-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
+        .graph-container{flex:1;background:var(--surface);border-radius:14px;box-shadow:var(--shadow);position:relative;overflow:hidden;min-height:520px}
+        .graph-legend{position:absolute;bottom:14px;left:14px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);padding:11px 15px;border-radius:10px;box-shadow:var(--shadow);font-size:.8em;display:flex;flex-direction:column;gap:5px;z-index:10}
+        .legend-row{display:flex;align-items:center;gap:7px}
+        .legend-circle{width:10px;height:10px;border-radius:50%}
+        .graph-info{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);padding:9px 13px;border-radius:10px;box-shadow:var(--shadow);font-size:.8em;color:var(--text-secondary);z-index:10}
+        .graph-info strong{color:var(--text)}
+        .nodes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+        .node-card{background:var(--surface);border-radius:12px;padding:15px;box-shadow:var(--shadow);border:1px solid var(--border);cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+        .node-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);border-color:var(--primary-light)}
+        .node-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:12px 0 0 12px}
+        .node-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
+        .node-card-title{font-size:.97em;font-weight:600;line-height:1.3}
+        .type-badge{font-size:.7em;padding:2px 7px;border-radius:10px;font-weight:600;flex-shrink:0;margin-left:7px}
+        .tb-concept{background:#ede9fe;color:#7c3aed}.tb-theorem{background:#dbeafe;color:#2563eb}
+        .tb-formula{background:#dcfce7;color:#16a34a}.tb-method{background:#fef3c7;color:#d97706}
+        .tb-law{background:#fee2e2;color:#dc2626}.tb-conjecture{background:#fce7f3;color:#db2777}
+        .node-card-desc{font-size:.84em;color:var(--text-secondary);line-height:1.5;margin-bottom:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .node-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px}
+        .mini-tag{font-size:.72em;padding:2px 7px;border-radius:10px;font-weight:500}
+        .mt-grade{background:#f1f5f9;color:var(--text-secondary)}.mt-branch{background:#f0fdf4;color:#15803d}
+        .node-card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:9px;border-top:1px solid var(--border)}
+        .diff-row{display:flex;align-items:center;gap:5px;font-size:.78em;color:var(--text-secondary)}
+        .diff-dots{display:flex;gap:2px}
+        .diff-dot{width:7px;height:7px;border-radius:50%;background:#e2e8f0}
+        .diff-dot.filled{background:#f59e0b}
+        .time-est{font-size:.76em;color:var(--text-secondary)}
+        .prereq-chip{font-size:.76em;color:var(--text-secondary);padding:2px 7px;background:var(--bg);border-radius:10px}
+        .prereq-chip.has{color:var(--primary);font-weight:500;background:#ede9fe}
+        .detail-panel{width:360px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:20px}
+        .detail-panel.hidden{display:none}
+        .detail-close{float:right;width:26px;height:26px;border:none;background:var(--bg);border-radius:50%;cursor:pointer;font-size:.9em;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+        .detail-close:hover{background:var(--border)}
+        .detail-title{font-size:1.15em;font-weight:700;margin-bottom:3px;padding-right:34px}
+        .detail-subtitle{font-size:.82em;color:var(--text-secondary);margin-bottom:15px}
+        .detail-section{margin-bottom:16px}
+        .detail-section-title{font-size:.7em;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+        .detail-desc{font-size:.88em;color:var(--text);line-height:1.6;background:var(--bg);border-radius:8px;padding:11px}
+        .detail-tags{display:flex;flex-wrap:wrap;gap:5px}
+        .detail-tag{padding:3px 9px;border-radius:8px;font-size:.78em;font-weight:500}
+        .detail-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+        .metric-card{background:var(--bg);border-radius:10px;padding:9px;text-align:center}
+        .metric-value{font-size:1.25em;font-weight:700;color:var(--primary)}
+        .metric-label{font-size:.7em;color:var(--text-secondary);margin-top:2px}
+        .rel-item{display:flex;align-items:center;gap:8px;padding:7px 9px;background:var(--bg);border-radius:8px;font-size:.85em;cursor:pointer;transition:all .15s}
+        .rel-item:hover{background:#ede9fe}
+        .rel-arrow{color:var(--text-secondary);font-size:.8em}
+        .quiz-header{background:var(--surface);border-radius:14px;padding:22px;box-shadow:var(--shadow);margin-bottom:16px}
+        .quiz-progress-wrap{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+        .quiz-progress-track{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+        .quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-light));border-radius:4px;transition:width .3s}
+        .quiz-progress-text{font-size:.83em;color:var(--text-secondary);white-space:nowrap}
+        .quiz-level-select{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+        .quiz-card{background:var(--surface);border-radius:14px;padding:22px;box-shadow:var(--shadow);margin-bottom:11px}
+        .quiz-question{font-size:1.05em;font-weight:600;margin-bottom:5px}
+        .quiz-meta{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+        .quiz-meta-tag{font-size:.75em;padding:2px 8px;border-radius:10px;font-weight:500}
+        .quiz-meta-tag.mt-grade{background:#f1f5f9;color:var(--text-secondary)}.quiz-meta-tag.mt-branch{background:#f0fdf4;color:#15803d}
+        .nav-quiz-badge{display:inline-block;background:#10b981;color:#fff;font-size:.65em;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle;line-height:1.4}
+        .quiz-btn-group{display:flex;gap:10px}
+        .quiz-btn{flex:1;padding:11px;border:none;border-radius:10px;font-size:.97em;font-weight:600;cursor:pointer;transition:all .2s}
+        .quiz-btn-known{background:#dcfce7;color:#16a34a}.quiz-btn-known:hover{background:#16a34a;color:#fff}
+        .quiz-btn-unknown{background:#fee2e2;color:#dc2626}.quiz-btn-unknown:hover{background:#dc2626;color:#fff}
+        .quiz-actions{display:flex;gap:10px;margin-top:12px}
+        .quiz-action-btn{padding:8px 18px;border:1px solid var(--border);background:var(--surface);border-radius:8px;font-size:.85em;cursor:pointer;transition:all .15s;color:var(--text)}
+        .quiz-action-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .quiz-action-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .stats-hero{background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:16px;padding:26px;color:#fff;margin-bottom:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .hero-stat{text-align:center}
+        .hero-stat-value{font-size:2.2em;font-weight:700}
+        .hero-stat-label{font-size:.82em;opacity:.82;margin-top:4px}
+        .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+        .stats-card{background:var(--surface);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+        .stats-card-title{font-size:.95em;font-weight:600;margin-bottom:15px;display:flex;align-items:center;gap:7px}
+        .level-bar-item{margin-bottom:13px}
+        .level-bar-header{display:flex;justify-content:space-between;font-size:.84em;margin-bottom:5px}
+        .level-bar-name{font-weight:500}.level-bar-count{color:var(--text-secondary)}
+        .level-bar-track{height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+        .level-bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+        .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+        .page-title{font-size:1.3em;font-weight:700}
+        .page-title span{font-size:.75em;color:var(--text-secondary);font-weight:400;margin-left:8px}
+        .sort-select{padding:6px 11px;border:1px solid var(--border);border-radius:8px;font-size:.86em;background:var(--surface);color:var(--text);cursor:pointer}
+        .graph-tooltip{position:fixed;background:#fff;border-radius:10px;padding:9px 13px;box-shadow:var(--shadow-lg);font-size:.83em;max-width:250px;pointer-events:none;z-index:1000;border:1px solid var(--border);display:none}
+        .graph-tooltip-title{font-weight:600;margin-bottom:3px}
+        .graph-tooltip-meta{color:var(--text-secondary);line-height:1.5}
+        .search-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;margin-top:4px;box-shadow:var(--shadow-lg);max-height:280px;overflow-y:auto;z-index:200;display:none}
+        .search-results.show{display:block}
+        .search-item{padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+        .search-item:last-child{border-bottom:none}
+        .search-item:hover{background:var(--bg)}
+        .search-item-name{font-weight:500;font-size:.88em}
+        .search-item-meta{font-size:.76em;color:var(--text-secondary);margin-top:2px}
+        .toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:#fff;padding:11px 18px;border-radius:10px;font-size:.88em;box-shadow:var(--shadow-lg);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+        .toast.show{opacity:1}
+        .loading{text-align:center;padding:50px;color:var(--text-secondary);font-size:.95em}
+        .empty-state{text-align:center;padding:60px 20px;color:var(--text-secondary)}
+        .empty-state-icon{font-size:2.8em;margin-bottom:14px}
+        .empty-state-title{font-size:1.05em;font-weight:600;color:var(--text);margin-bottom:7px}
+        ::-webkit-scrollbar{width:5px;height:5px}
+        ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+        @media(max-width:900px){.sidebar{width:210px}.detail-panel{width:280px}.stats-grid{grid-template-columns:1fr}.stats-hero{grid-template-columns:repeat(2,1fr)}}
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <div class="topbar-logo">
+        <div class="logo-icon">∫</div>
+        <span>数学知识图谱</span>
+    </div>
+    <div class="topbar-nav">
+        <button class="nav-btn active" data-page="graph" onclick="showPage('graph')">🗺️ 图谱</button>
+        <button class="nav-btn" data-page="list" onclick="showPage('list')">📋 知识库</button>
+        <button class="nav-btn" data-page="quiz" onclick="showPage('quiz')" id="navQuizBtn">📝 同步</button>
+        <button class="nav-btn" data-page="stats" onclick="showPage('stats')">📊 统计</button>
+    </div>
+    <div class="topbar-right">
+        <div style="position:relative">
+            <div class="search-box">
+                <span>🔍</span>
+                <input id="searchInput" placeholder="搜索知识点..." oninput="handleSearch(this.value)" onblur="setTimeout(()=>document.getElementById('searchResults').classList.remove('show'),200)">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+</div>
+
+<div class="main-layout">
+    <div class="sidebar">
+        <div class="sidebar-section">
+            <div class="sidebar-title">📚 概览</div>
+            <div class="stat-mini">
+                <div class="stat-mini-card"><div class="stat-mini-value" id="totalNodes">—</div><div class="stat-mini-label">知识点</div></div>
+                <div class="stat-mini-card"><div class="stat-mini-value" id="totalBranches">—</div><div class="stat-mini-label">分支</div></div>
+            </div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-title">🎓 年级筛选</div>
+            <div class="grade-filter" id="gradeFilter"></div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-title">🔬 数学分支</div>
+            <div class="branch-filter" id="branchFilter"></div>
+        </div>
+    </div>
+
+    <div class="main-content" id="mainContent"><div class="loading">加载中</div></div>
+    <div class="detail-panel hidden" id="detailPanel">
+        <button class="detail-close" onclick="closeDetail()">✕</button>
+        <div class="detail-title" id="detailTitle">—</div>
+        <div class="detail-subtitle" id="detailSubtitle"></div>
+        <div id="detailContent"></div>
+    </div>
+</div>
+
+<div class="graph-tooltip" id="graphTooltip" style="display:none"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API='http://localhost:8088',USER_ID='default';
+const GRADE_LEVELS=[
+    {id:'all',name:'全部',color:'#6366f1'},
+    {id:'小学一年级',name:'小学一年级',color:'#10b981'},{id:'小学二年级',name:'小学二年级',color:'#059669'},
+    {id:'小学三年级',name:'小学三年级',color:'#0891b2'},{id:'小学四年级',name:'小学四年级',color:'#0284c7'},
+    {id:'小学五年级',name:'小学五年级',color:'#7c3aed'},{id:'小学六年级',name:'小学六年级',color:'#db2777'},
+    {id:'初中一年级',name:'初中一年级',color:'#d97706'},{id:'初中二年级',name:'初中二年级',color:'#ea580c'},
+    {id:'初中三年级',name:'初中三年级',color:'#dc2626'},{id:'高中一年级',name:'高中一年级',color:'#2563eb'},
+    {id:'高中二年级',name:'高中二年级',color:'#1d4ed8'},{id:'高中三年级',name:'高中三年级',color:'#1e40af'},
+    {id:'大学及以上',name:'大学及以上',color:'#374151'},
+];
+const BRANCH_NAMES={arithmetic:'算术',algebra:'代数',geometry:'几何',analysis:'分析',probability:'概率',statistics:'统计',discrete:'离散数学',number_theory:'数论',logic:'逻辑',topology:'拓扑',applied:'应用数学',other:'其他',trigonometry:'三角学',dynamics:'动力系统',numerical:'数值分析',optimization:'优化',pde:'微分方程',physics:'数学物理'};
+const TYPE_BADGE={concept:'tb-concept',theorem:'tb-theorem',formula:'tb-formula',method:'tb-method',law:'tb-law',conjecture:'tb-conjecture'};
+const GRADE_COLOR={};GRADE_LEVELS.forEach(g=>GRADE_COLOR[g.id]=g.color);
+
+let allNodes=[],filteredNodes=[],userKnowledge={},currentPage='graph',selectedGrade='all',selectedBranch='';
+let currentSimulation=null;
+let quizQuestions=[],quizIndex=0,quizAnswers={},quizLevel='',quizBranch='';
+let MAX_QUIZ_COUNT = 50; // 同步题目数量限制，可在此修改默认值
+let quizReviewed=new Set(); // 本轮已同步的节点ID（避免userKnowledge残留干扰）
+let graphMode='all';
+
+// ============================================================
+async function init(){
+    await Promise.all([loadNodes(),loadUserKnowledge(),loadBranches()]);
+    renderGradeFilter();renderBranchFilter();updateStats();showPage('graph');
+}
+
+async function loadNodes(){
+    try{
+        const r=await fetch(`${API}/nodes?limit=10000`);
+        const d=await r.json();
+        allNodes=d.nodes||[];applyFilters();
+    }catch(e){allNodes=[]}
+}
+
+async function loadUserKnowledge(){
+    try{
+        const r=await fetch(`${API}/users/${USER_ID}/profile`);
+        const p=await r.json();
+        const kn=p.known_nodes||[];
+        userKnowledge={};
+        kn.forEach(n=>{const id=typeof n==='string'?n:(n.node_id||n.id);userKnowledge[id]={status:'known'}});
+    }catch(e){userKnowledge={}}
+}
+
+function renderBranchFilter(){
+    const el=document.getElementById('branchFilter');
+    if(!el)return;
+    const brs={};
+    allNodes.forEach(n=>{const b=n.branch||'other';brs[b]=(brs[b]||0)+1});
+    el.innerHTML=Object.entries(brs).sort((a,b)=>b[1]-a[1]).map(([k,c])=>`<span class="branch-tag${selectedBranch===k?' active':''}" onclick="toggleBranch('${k}')">${BRANCH_NAMES[k]||k}(${c})</span>`).join('');
+    document.getElementById('totalBranches').textContent=Object.keys(brs).length;
+}
+
+async function loadBranches(){
+    const brs={};
+    allNodes.forEach(n=>{const b=n.branch||'other';brs[b]=(brs[b]||0)+1});
+    const el=document.getElementById('branchFilter');
+    el.innerHTML=Object.entries(brs).sort((a,b)=>b[1]-a[1]).map(([k,c])=>`<span class="branch-tag${selectedBranch===k?' active':''}" onclick="toggleBranch('${k}')">${BRANCH_NAMES[k]||k}(${c})</span>`).join('');
+    document.getElementById('totalBranches').textContent=Object.keys(brs).length;
+}
+
+function applyFilters(){
+    filteredNodes=allNodes.filter(n=>{
+        if(selectedGrade!=='all'){
+            const grade=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
+            if(grade!==selectedGrade)return false;
+        }
+        if(selectedBranch&&n.branch!==selectedBranch)return false;
+        return true;
+    });
+    document.getElementById('totalNodes').textContent=allNodes.length;
+}
+
+function renderGradeFilter(){
+    const el=document.getElementById('gradeFilter');
+    const counts={all:allNodes.length};
+    allNodes.forEach(n=>{
+        // 优先使用grade字段
+        const grade=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
+        if(grade)counts[grade]=(counts[grade]||0)+1;
+    });
+    el.innerHTML=GRADE_LEVELS.map(g=>`<button class="grade-btn${selectedGrade===g.id?' active':''}" onclick="selectGrade('${g.id}')">
+        <span class="grade-dot" style="background:${g.color}"></span>
+        <span class="grade-name">${g.name}</span>
+        <span class="grade-count">${g.id==='all'?allNodes.length:(counts[g.id]||0)}</span>
+    </button>`).join('');
+}
+
+function selectGrade(id){selectedGrade=id;applyFilters();renderGradeFilter();if(currentPage==='graph')renderGraph();else if(currentPage==='list')renderList();}
+
+function toggleBranch(b){selectedBranch=selectedBranch===b?'':b;applyFilters();loadBranches();if(currentPage==='graph')renderGraph();else if(currentPage==='list')renderList();}
+
+function updateStats(){
+    document.getElementById('totalNodes').textContent=allNodes.length;
+    // 同步更新导航栏同步角标
+    const assessedCount = Object.values(userKnowledge).filter(v=>v?.status==='known'||v?.status==='unknown').length;
+    const navBtn=document.getElementById('navQuizBtn');
+    if(navBtn){
+        const existingBadge=navBtn.querySelector('.nav-quiz-badge');
+        if(assessedCount>0){
+            if(existingBadge){existingBadge.textContent=assessedCount;}
+            else{
+                const badge=document.createElement('span');
+                badge.className='nav-quiz-badge';
+                badge.textContent=assessedCount;
+                navBtn.appendChild(badge);
+            }
+        } else {
+            if(existingBadge)existingBadge.remove();
+        }
+    }
+}
+
+// ============================================================
+function showPage(page){
+    currentPage=page;
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+    switch(page){
+        case'graph':renderGraphPage();break;
+        case'list':renderListPage();break;
+        case'quiz':renderQuizPage();break;
+        case'stats':renderStatsPage();break;
+    }
+    closeDetail();
+}
+
+// ============================================================
+function renderGraphPage(){
+    document.getElementById('mainContent').innerHTML=`
+    <div class="graph-wrap">
+        <div class="graph-toolbar">
+            <div style="display:flex;gap:5px">
+                <button class="mini-btn${graphMode==='all'?' active':''}" onclick="setGraphMode('all')">全局</button>
+                <button class="mini-btn${graphMode==='grade'?' active':''}" onclick="setGraphMode('grade')">按年级</button>
+                <button class="mini-btn${graphMode==='branch'?' active':''}" onclick="setGraphMode('branch')">按分支</button>
+            </div>
+            <button class="mini-btn" onclick="resetGraph()">🔄 重置</button>
+            <button class="mini-btn" onclick="graphZoom(1.3)">➕ 放大</button>
+            <button class="mini-btn" onclick="graphZoom(0.7)">➖ 缩小</button>
+        </div>
+        <div class="graph-container">
+            <div class="graph-info" id="graphInfo">节点: <strong id="graphNodeCount">0</strong> / 边: <strong id="graphEdgeCount">0</strong></div>
+            <div class="graph-legend" id="graphLegend"></div>
+            <svg id="graphSvg" style="width:100%;height:100%"></svg>
+            <div class="graph-tooltip" id="graphTooltip" style="display:none"></div>
+        </div>
+    </div>`;
+    renderGraph();
+}
+
+function setGraphMode(m){graphMode=m;renderGraph();}
+
+function renderGraph(){
+    const svgEl=document.getElementById('graphSvg');
+    if(!svgEl)return;
+    const container=svgEl.parentElement;
+    const W=container.clientWidth,H=container.clientHeight;
+    const svg=d3.select(svgEl).attr('width',W).attr('height',H);
+    svg.selectAll('*').remove();
+    if(currentSimulation){currentSimulation.stop();currentSimulation=null}
+
+    // 准备数据：显示更多节点(1000)，让边能充分显示
+    let displayCount = Math.min(filteredNodes.length, 1000);
+    let nodes=filteredNodes.slice(0,displayCount).map(n=>({...n,rid:n.id}));
+    const nodeIds=new Set(nodes.map(n=>n.rid));
+
+    // 建立边的双向映射
+    const links=[];
+    const outLinks=new Map(); // source -> [targets]
+    const inLinks=new Map();  // target -> [sources]
+    nodes.forEach(n=>{
+        if(n.prerequisites)for(const p of n.prerequisites){
+            if(nodeIds.has(p)){
+                links.push({source:p,target:n.id});
+                outLinks.set(p,(outLinks.get(p)||[]).concat([n.id]));
+                inLinks.set(n.id,(inLinks.get(n.id)||[]).concat([p]));
+            }
+        }
+    });
+
+    // 对只显示子节点但父节点不在的情况，创建聚合边(虚拟根)
+    const virtualNodes=[];
+    const virtualRootId='_vr_';
+    let virtualCount=0;
+    const prereqsOutside=new Map(); // nid -> count of outside prereqs
+    nodes.forEach(n=>{
+        const prereqs=n.prerequisites||[];
+        const outside=prereqs.filter(p=>!nodeIds.has(p));
+        if(outside.length>0){
+            virtualCount++;
+            prereqsOutside.set(n.id, outside.length);
+            if(!nodeIds.has(virtualRootId)){
+                virtualNodes.push({rid:virtualRootId,name:{zh:'前置知识'},branch:n.branch,tags:n.tags,level:n.level,difficulty:1,importance:1,isVirtual:true});
+                nodeIds.add(virtualRootId);
+            }
+            links.push({source:virtualRootId,target:n.id,isVirtual:true});
+        }
+    });
+
+    document.getElementById('graphNodeCount').textContent=nodes.length+virtualNodes.length;
+    document.getElementById('graphEdgeCount').textContent=links.length;
+
+    // 节点颜色
+    function nodeColor(d){
+        if(d.isVirtual)return '#e2e8f0';
+        if(graphMode==='grade'){
+            const g=d.tags&&d.tags.find(t=>GRADE_COLOR[t]);
+            return g?GRADE_COLOR[g]:'#94a3b8';
+        } else if(graphMode==='branch'){
+            const colors={arithmetic:'#10b981',algebra:'#6366f1',geometry:'#f59e0b',analysis:'#ef4444',probability:'#8b5cf6',statistics:'#06b6d4',discrete:'#84cc16',number_theory:'#ec4899',logic:'#14b8a6',topology:'#f97316',other:'#94a3b8'};
+            return colors[d.branch]||'#94a3b8';
+        }
+        const known=userKnowledge[d.id]?.status==='known';
+        return known?'#10b981':'#cbd5e0';
+    }
+
+    // 图例
+    const legendEl=document.getElementById('graphLegend');
+    if(graphMode==='grade'){
+        legendEl.innerHTML=GRADE_LEVELS.slice(1).map(g=>`<div class="legend-row"><div class="legend-circle" style="background:${g.color}"></div><span>${g.name}</span></div>`).join('');
+    } else if(graphMode==='branch'){
+        const used=new Set(nodes.map(n=>n.branch));
+        legendEl.innerHTML=Object.entries(BRANCH_NAMES).filter(([k])=>used.has(k)).map(([k,v])=>`<div class="legend-row"><div class="legend-circle" style="background:${{arithmetic:'#10b981',algebra:'#6366f1',geometry:'#f59e0b',analysis:'#ef4444',probability:'#8b5cf6',statistics:'#06b6d4',discrete:'#84cc16',number_theory:'#ec4899',logic:'#14b8a6',topology:'#f97316'}[k]||'#94a3b8'}"></div><span>${v}</span></div>`).join('');
+    } else {
+        legendEl.innerHTML=`<div class="legend-row"><div class="legend-circle" style="background:#10b981"></div><span>已掌握</span></div><div class="legend-row"><div class="legend-circle" style="background:#cbd5e0"></div><span>未同步</span></div>`;
+    }
+
+    const allGraphNodes=[...nodes,...virtualNodes];
+    const sim=d3.forceSimulation(allGraphNodes)
+        .force('link',d3.forceLink(links).id(n=>n.rid).distance(d=>d.isVirtual?20:(d.source.branch===d.target.branch?40:60)).strength(d=>d.isVirtual?0.1:0.5))
+        .force('charge',d3.forceManyBody().strength(-200))
+        .force('center',d3.forceCenter(W/2,H/2))
+        .force('collision',d3.forceCollide().radius(16))
+        .force('x',d3.forceX(W/2).strength(0.03))
+        .force('y',d3.forceY(H/2).strength(0.03));
+
+    const g=svg.append('g');
+    svg.call(d3.zoom().scaleExtent([.2,3]).on('zoom',e=>g.attr('transform',e.transform)));
+
+    const link=g.append('g').selectAll('line').data(links).enter().append('line').attr('class','graph-link').attr('stroke-width',d=>d.isVirtual?0.5:1).attr('stroke',d=>d.isVirtual?'#94a3b8':'#cbd5e0').attr('stroke-opacity',d=>d.isVirtual?0.2:0.4);
+    const node=g.append('g').selectAll('g').data(allGraphNodes).enter().append('g').attr('class','graph-node').call(d3.drag().on('start',function(e,d){if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y}).on('drag',function(e,d){d.fx=e.x;d.fy=d.y}).on('end',function(e,d){if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null}));
+
+    node.append('circle').attr('r',d=>d.isVirtual?4:(userKnowledge[d.id]?.status==='known'?9:7)).attr('fill',nodeColor).attr('stroke',d=>d.isVirtual?'none':'#fff').attr('stroke-width',d=>d.isVirtual?0:2);
+    node.append('text').attr('dx',11).attr('dy',4).text(d=>d.isVirtual?`前置(+${prereqsOutside.get(d.rid)||0})`:(d.name?.zh||d.name||'').substring(0,8)).attr('font-size',d=>d.isVirtual?'7px':'9px').attr('fill',d=>d.isVirtual?'#94a3b8':'#64748b').attr('font-style',d=>d.isVirtual?'italic':'normal');
+
+    const tip=document.getElementById('graphTooltip');
+    node.on('mouseover',function(event,d){
+        const gtag=d.tags&&d.tags.find(t=>GRADE_COLOR[t])||'未分类';
+        const known=userKnowledge[d.id]?.status==='known';
+        tip.style.display='block';tip.style.left=(event.clientX+12)+'px';tip.style.top=(event.clientY-10)+'px';
+        tip.innerHTML=`<div class="graph-tooltip-title">${d.name?.zh||d.name||''}</div><div class="graph-tooltip-meta">${gtag} · ${d.branch?(BRANCH_NAMES[d.branch]||d.branch):'其他'}<br>难度: ${d.difficulty}/10 · ${known?'✅ 已掌握':'⚪ 未同步'}</div>`;
+    }).on('mousemove',function(event){tip.style.left=(event.clientX+12)+'px';tip.style.top=(event.clientY-10)+'px'}).on('mouseout',function(){tip.style.display='none'}).on('click',function(d){openDetail(d.id)});
+
+    sim.on('tick',()=>{
+        link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+        node.attr('transform',d=>`translate(${d.x},${d.y})`);
+    });
+    currentSimulation=sim;
+}
+
+function resetGraph(){renderGraph()}
+function graphZoom(factor){const svg=d3.select('#graphSvg');svg.transition().call(d3.zoom().scaleBy,factor)}
+
+// ============================================================
+function renderListPage(){
+    // 构建年级按钮
+    const gradeBtns = GRADE_LEVELS.filter(g => g.id !== 'all').map(g => {
+        const count = allNodes.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === g.id).length;
+        return `<button class="mini-btn${listGrade===g.id?' active':''}" onclick="setListGrade('${g.id}')" style="padding:5px 10px;font-size:.8em">${g.name}<span style="opacity:.6;margin-left:3px">${count}</span></button>`;
+    }).join('');
+    
+    // 构建分支按钮
+    const branchMap = {};
+    allNodes.forEach(n => { const b = n.branch || 'other'; branchMap[b] = (branchMap[b]||0)+1; });
+    const branchBtns = Object.entries(branchMap).sort((a,b)=>b[1]-a[1]).map(([k,c]) => 
+        `<button class="mini-btn${listBranch===k?' active':''}" onclick="setListBranch('${k}')" style="padding:4px 9px;font-size:.78em">${BRANCH_NAMES[k]||k}(${c})</button>`
+    ).join('');
+    
+    const main=document.getElementById('mainContent');
+    main.innerHTML=`<div class="page-header">
+        <div style="font-size:1.1em;font-weight:600;margin-bottom:10px">📚 知识库</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${gradeBtns}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px" id="listBranchBtns">${branchBtns}</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <input class="search-box" style="width:280px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9em" id="listSearchInput" placeholder="🔍 搜索关键词..." oninput="handleListSearch(this.value)">
+        </div>
+    </div>
+    <div style="display:flex;gap:16px;height:calc(100vh - 250px)">
+        <div style="flex:1;overflow-y:auto;padding-right:8px" id="listResults">
+            <div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">请选择年级或分支，或搜索关键词</div>
+        </div>
+        <div style="width:380px;background:var(--surface);border-radius:12px;padding:16px;overflow-y:auto;box-shadow:var(--shadow)" id="listDetailPanel">
+            <div style="color:var(--text-secondary);font-size:.9em;text-align:center;padding:40px 0">👈 点击左侧知识点查看详情</div>
+        </div>
+    </div>`;
+    
+    // 如果已有筛选条件，加载数据
+    if (listGrade || listBranch || (listSearchQ && listSearchQ.trim())) {
+        loadListByFilter();
+    }
+}
+
+let listGrade = '';
+let listBranch = '';
+let listSearchQ = '';
+let listAllResults = [];
+
+function setListGrade(g) {
+    listGrade = (listGrade === g) ? '' : g;
+    listSearchQ = '';
+    document.getElementById('listSearchInput').value = '';
+    renderListPage();
+    loadListByFilter();
+}
+
+function setListBranch(b) {
+    listBranch = (listBranch === b) ? '' : b;
+    listSearchQ = '';
+    document.getElementById('listSearchInput').value = '';
+    renderListPage();
+    loadListByFilter();
+}
+
+async function loadListByFilter() {
+    const el = document.getElementById('listResults');
+    
+    // 优先搜索，其次年级/分支筛选
+    if (listSearchQ && listSearchQ.trim()) {
+        handleListSearch(listSearchQ);
+        return;
+    }
+    
+    if (!listGrade && !listBranch) {
+        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">请选择年级或分支，或搜索关键词</div>`;
+        return;
+    }
+    
+    let pool = allNodes;
+    if (listGrade) pool = pool.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === listGrade);
+    if (listBranch) pool = pool.filter(n => n.branch === listBranch);
+    
+    if (pool.length === 0) {
+        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">该条件下暂无知识点</div>`;
+        return;
+    }
+    
+    // 按名称排序
+    pool.sort((a,b) => (a.name?.zh||'').localeCompare(b.name?.zh||''));
+    listAllResults = pool;
+    renderListAllResults();
+}
+
+function renderListAllResults() {
+    const el = document.getElementById('listResults');
+    const gradeColor = listGrade ? (GRADE_COLOR[listGrade] || '#6366f1') : '#6366f1';
+    
+    el.innerHTML = `<div style="color:var(--text-secondary);font-size:.8em;margin-bottom:8px">${listGrade || ''}${listGrade&&listBranch?' · ':''}${listBranch?(BRANCH_NAMES[listBranch]||listBranch):''}：共 ${listAllResults.length} 个知识点</div>` + 
+        listAllResults.map(r => {
+            const rGrade = r.grade || '';
+            const rBranchName = BRANCH_NAMES[r.branch] || r.branch || '';
+            const rGradeColor = rGrade ? (GRADE_COLOR[rGrade] || '#6366f1') : gradeColor;
+            return `<div class="node-card" onclick="showListNodeDetail('${r.id}')" style="margin-bottom:10px;padding:14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div style="flex:1">
+                        <div style="font-weight:600;margin-bottom:4px">${r.name?.zh || r.name || r.id}</div>
+                        <div style="font-size:.8em;color:var(--text-secondary)">${r.id}</div>
+                    </div>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap">
+                        ${rGrade ? `<span style="padding:2px 8px;background:${rGradeColor}20;color:${rGradeColor};border-radius:10px;font-size:.75em">${rGrade}</span>` : ''}
+                        ${rBranchName ? `<span style="padding:2px 8px;background:#10b98120;color:#10b981;border-radius:10px;font-size:.75em">${rBranchName}</span>` : ''}
+                    </div>
+                </div>
+                <div style="margin-top:8px;font-size:.82em;color:var(--text-secondary)">${(r.description?.zh || r.description || '暂无描述').substring(0, 100)}...</div>
+            </div>`;
+        }).join('');
+}
+
+let listSearchResults = [];
+async function handleListSearch(q) {
+    listSearchQ = q;
+    listGrade = '';
+    listBranch = '';
+    renderListPage(); // 重新渲染，清除筛选按钮状态
+    
+    const el = document.getElementById('listResults');
+    if (!q.trim()) {
+        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">输入关键词搜索知识点</div>`;
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API}/admin/search?q=${encodeURIComponent(q)}&limit=50`);
+        const data = await res.json();
+        listSearchResults = data.results || [];
+        renderListResults();
+    } catch(e) {
+        el.innerHTML = `<div style="color:var(--danger);padding:20px">搜索失败: ${e.message}</div>`;
+    }
+}
+
+function renderListResults() {
+    const el = document.getElementById('listResults');
+    if (listSearchResults.length === 0) {
+        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">未找到相关知识点</div>`;
+        return;
+    }
+    
+    el.innerHTML = `<div style="color:var(--text-secondary);font-size:.8em;margin-bottom:8px">搜索"${listSearchQ}"：找到 ${listSearchResults.length} 个结果</div>` + 
+        listSearchResults.map(r => {
+            const gradeTag = r.grade || '';
+            const branchName = BRANCH_NAMES[r.branch] || r.branch || '';
+            const gradeColor = gradeTag ? (GRADE_COLOR[gradeTag] || '#6366f1') : '#6366f1';
+            return `<div class="node-card" onclick="showListNodeDetail('${r.id}')" style="margin-bottom:10px;padding:14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div style="flex:1">
+                        <div style="font-weight:600;margin-bottom:4px">${r.name?.zh || r.name || r.id}</div>
+                        <div style="font-size:.8em;color:var(--text-secondary)">${r.id}</div>
+                    </div>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap">
+                        ${gradeTag ? `<span style="padding:2px 8px;background:${gradeColor}20;color:${gradeColor};border-radius:10px;font-size:.75em">${gradeTag}</span>` : ''}
+                        ${branchName ? `<span style="padding:2px 8px;background:#10b98120;color:#10b981;border-radius:10px;font-size:.75em">${branchName}</span>` : ''}
+                    </div>
+                </div>
+                <div style="margin-top:8px;font-size:.82em;color:var(--text-secondary)">${(r.description?.zh || r.description || '暂无描述').substring(0, 100)}...</div>
+            </div>`;
+        }).join('');
+}
+
+async function showListNodeDetail(nodeId) {
+    try {
+        const res = await fetch(`${API}/nodes/${nodeId}`);
+        const data = await res.json();
+        const n = data.node;
+        
+        const prereqs = data.prerequisites || [];
+        const nexts = data.next_nodes || [];
+        const gradeTag = n.grade || '';
+        const diffLabel = ['','基础','基础','中等','中等','较难','较难','困难','困难','很难','极难'][n.difficulty] || '中等';
+        const impLabel = ['','了解','了解','理解','理解','掌握','掌握','重点','重点','核心','核心'][n.importance] || '掌握';
+        const typeLabels = {'concept':'📖 概念','theorem':'📐 定理','formula':'📐 公式','method':'🔧 方法','law':'⚖️ 定律','axiom':'📌 公理','conjecture':'🔮 猜想'};
+        const typeLabel = typeLabels[n.type] || '📖 知识点';
+        
+        const panel = document.getElementById('listDetailPanel');
+        panel.innerHTML = `
+            <div style="font-size:1.1em;font-weight:600;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">${n.name?.zh || n.id}</div>
+            
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+                ${gradeTag ? `<span style="padding:3px 10px;background:#f0fdf4;color:#15803d;border-radius:12px;font-size:.78em;font-weight:500">${gradeTag}</span>` : ''}
+                <span style="padding:3px 10px;background:#fef3c7;color:#92400e;border-radius:12px;font-size:.78em;font-weight:500">${typeLabel}</span>
+                <span style="padding:3px 10px;background:#dbeafe;color:#1e40af;border-radius:12px;font-size:.78em">难度 ${diffLabel}</span>
+                <span style="padding:3px 10px;background:#fce7f3;color:#9d174d;border-radius:12px;font-size:.78em">重要 ${impLabel}</span>
+            </div>
+            
+            <div style="font-size:.85em;color:var(--text-secondary);margin-bottom:12px;line-height:1.6">
+                ${n.description?.zh || n.description || '暂无描述'}
+            </div>
+            
+            <div style="margin-bottom:12px">
+                <div style="font-weight:600;font-size:.85em;margin-bottom:8px">📚 前置知识 (${prereqs.length})</div>
+                ${prereqs.length ? prereqs.map(p => `
+                    <div onclick="showListNodeDetail('${p.id}')" style="padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:.85em;display:flex;align-items:center;gap:8px">
+                        <span style="color:#10b981">←</span>
+                        <span style="flex:1">${p.name?.zh || p.id}</span>
+                        <span style="color:var(--text-secondary);font-size:.8em">${BRANCH_NAMES[p.branch] || ''}</span>
+                    </div>
+                `).join('') : '<div style="color:var(--text-secondary);font-size:.85em">无前置知识</div>'}
+            </div>
+            
+            <div style="margin-bottom:12px">
+                <div style="font-weight:600;font-size:.85em;margin-bottom:8px">📖 后续知识 (${nexts.length})</div>
+                ${nexts.length ? nexts.map(n2 => `
+                    <div onclick="showListNodeDetail('${n2.id}')" style="padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:.85em;display:flex;align-items:center;gap:8px">
+                        <span style="color:#6366f1">→</span>
+                        <span style="flex:1">${n2.name?.zh || n2.id}</span>
+                        <span style="color:var(--text-secondary);font-size:.8em">${BRANCH_NAMES[n2.branch] || ''}</span>
+                    </div>
+                `).join('') : '<div style="color:var(--text-secondary);font-size:.85em">无后续知识</div>'}
+            </div>
+            
+            <div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+                <button onclick="openAdminEdit('${n.id}')" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;font-size:.85em;font-weight:500">✏️ 后台编辑</button>
+                <button onclick="copyNodeId('${n.id}')" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer" title="复制ID">📋</button>
+            </div>
+            
+            <div style="margin-top:12px;font-size:.75em;color:var(--text-secondary);word-break:break-all">ID: ${n.id}</div>
+        `;
+        
+    } catch(e) {
+        document.getElementById('listDetailPanel').innerHTML = `<div style="color:var(--danger);padding:20px">加载失败: ${e.message}</div>`;
+    }
+}
+
+function copyNodeId(id) {
+    navigator.clipboard.writeText(id).then(() => showToast('已复制节点ID'));
+}
+
+function openAdminEdit(nodeId) {
+    window.open(`/admin?edit=${encodeURIComponent(nodeId)}`, '_blank');
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) {
+        const toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:10px;font-size:.9em;z-index:9999';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    } else {
+        t.textContent = msg;
+        t.style.opacity = 1;
+        setTimeout(() => t.style.opacity = 0, 2000);
+    }
+}
+
+// ============================================================
+async function renderQuizPage(){
+    // 如果已有进行中的同步，先恢复状态
+    const hasInProgress = quizQuestions.length > 0 && quizIndex < quizQuestions.length;
+
+    // 获取当前年级的分支列表
+    const gradeNodes = quizLevel ? allNodes.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === quizLevel) : [];
+    const branchCounts = {};
+    gradeNodes.forEach(n => {
+        const b = n.branch || 'other';
+        branchCounts[b] = (branchCounts[b] || 0) + 1;
+    });
+
+    // 计算该年级已同步和未同步数量
+    let statsHtml = '';
+    const selectedGrades = quizMultiGrades.length > 0 ? quizMultiGrades : (quizLevel ? [quizLevel] : []);
+    
+    if (selectedGrades.length > 0) {
+        const selectedGradeNodes = allNodes.filter(n => selectedGrades.includes(n.grade||n.tags?.find(t=>GRADE_COLOR[t])));
+        const totalInGrade = selectedGradeNodes.length;
+        const assessedInGrade = selectedGradeNodes.filter(n => userKnowledge[n.id]?.status === 'known' || userKnowledge[n.id]?.status === 'unknown').length;
+        const unassessedInGrade = totalInGrade - assessedInGrade;
+        const gradeNames = selectedGrades.map(g => GRADE_LEVELS.find(gl=>gl.id===g)?.name).join('、');
+        
+        // 选择任意年级都显示同步全部按钮
+        statsHtml = `<div style="margin-bottom:10px;padding:10px;background:#ede9fe;border-radius:8px;font-size:.85em">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span style="font-weight:600;color:#5b21b6">${gradeNames}</span>
+                <button class="mini-btn" onclick="syncAllSelectedGrades()" style="background:#7c3aed;color:#fff;padding:4px 12px;font-size:.8em">🚀 同步全部</button>
+            </div>
+            <div style="color:#6b7280">共 <strong>${totalInGrade}</strong> 题，已同步 <strong style="color:#10b981">${assessedInGrade}</strong> 题，未同步 <strong style="color:#f59e0b">${unassessedInGrade}</strong> 题</div>
+        </div>`;
+    }
+
+    // 年级按钮行
+    const gradeBtns = GRADE_LEVELS.filter(g => g.id !== 'all').map(g => {
+        const count = allNodes.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === g.id).length;
+        return `<button class="mini-btn${quizLevel===g.id?' active':''}" onclick="toggleQuizGrade('${g.id}')" style="padding:5px 10px;font-size:.8em">${g.name}<span style="opacity:.6;margin-left:3px">${count}</span></button>`;
+    }).join('');
+
+    // 题目数量选择器
+    const countOptions = [5, 10, 20, 30, 50, 100];
+    const countSelectHtml = `<div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:.8em;color:var(--text-secondary)">题目数量:</span>
+        <button class="mini-btn${MAX_QUIZ_COUNT===999999?' active':''}" onclick="updateQuizCount(999999)" style="padding:4px 10px;font-size:.75em">全部</button>
+        ${countOptions.map(c => `<button class="mini-btn${MAX_QUIZ_COUNT===c?' active':''}" onclick="updateQuizCount(${c})" style="padding:4px 10px;font-size:.75em">${c}</button>`).join('')}
+    </div>`;
+
+    // 分支按钮行（仅大学及以上显示）
+    let branchBtns = '';
+    if (quizLevel === '大学及以上') {
+        branchBtns = `<div style="margin-bottom:10px">
+            <div style="font-size:.78em;color:var(--text-secondary);margin-bottom:6px;font-weight:500">按分支筛选</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+                <button class="mini-btn${quizBranch===''?' active':''}" onclick="selectQuizBranch('')" style="padding:4px 9px;font-size:.78em">全部</button>
+                ${Object.entries(branchCounts).sort((a,b)=>b[1]-a[1]).map(([k,c])=>`<button class="mini-btn${quizBranch===k?' active':''}" onclick="selectQuizBranch('${k}')" style="padding:4px 9px;font-size:.78em">${BRANCH_NAMES[k]||k}(${c})</button>`).join('')}
+            </div>
+        </div>`;
+    }
+
+    // 进度信息
+    let progressHtml = '';
+    if (hasInProgress) {
+        const pct = (quizIndex / quizQuestions.length * 100).toFixed(0);
+        progressHtml = `<div class="quiz-progress-wrap" style="margin-top:10px">
+            <div class="quiz-progress-track"><div class="quiz-progress-fill" style="width:${pct}%"></div></div>
+            <div class="quiz-progress-text">${quizIndex}/${quizQuestions.length}</div>
+        </div>`;
+    }
+
+    document.getElementById('mainContent').innerHTML = `<div class="quiz-page">
+        <div class="quiz-header">
+            <div style="font-size:1.1em;font-weight:600;margin-bottom:10px">📝 知识点同步</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${gradeBtns}</div>
+            ${statsHtml}
+            ${countSelectHtml}
+            ${branchBtns}
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+                <button class="mini-btn${hasInProgress?' active':''}" onclick="startQuiz()" id="startQuizBtn">${hasInProgress?'▶ 继续同步':'开始同步'}</button>
+                ${quizIndex > 0 ? `<button class="mini-btn" onclick="submitQuiz()" style="background:#10b981;color:#fff;">提交同步</button>` : ''}
+            </div>
+            ${progressHtml}
+        </div>
+        <div id="quizContent"></div>
+    </div>`;
+
+    if (hasInProgress) renderQuizContent();
+}
+
+// 切换选中的年级（支持多选）
+let quizMultiGrades = [];
+function toggleQuizGrade(g) {
+    // 如果点击的是已选中年级，取消选中
+    if (quizMultiGrades.includes(g)) {
+        quizMultiGrades = quizMultiGrades.filter(x => x !== g);
+    } else {
+        quizMultiGrades.push(g);
+    }
+    quizLevel = quizMultiGrades[quizMultiGrades.length - 1] || '';
+    quizBranch = '';
+    quizQuestions = [];
+    quizIndex = 0;
+    quizAnswers = {};
+    quizReviewed = new Set();
+    renderQuizPage();
+}
+
+// 同步全部已选年级（一键标记该年级所有知识点为已掌握）
+async function syncAllSelectedGrades() {
+    const grades = quizMultiGrades.length > 0 ? quizMultiGrades : (quizLevel ? [quizLevel] : []);
+    if (grades.length === 0) {
+        showToast('请先选择年级');
+        return;
+    }
+    
+    // 获取该年级所有知识点
+    const pool = allNodes.filter(n => {
+        return grades.includes(n.grade||n.tags?.find(t=>GRADE_COLOR[t]));
+    });
+
+    if (pool.length === 0) {
+        showToast('该年级暂无知识点');
+        return;
+    }
+
+    // 一键同步：全部标记为已掌握
+    const assessments = pool.map(n => ({ node_id: n.id, known: true }));
+    
+    try {
+        const response = await fetch(`${API}/users/${USER_ID}/assess`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: USER_ID, assessments })
+        });
+        
+        if (response.ok) {
+            await loadUserKnowledge();
+            updateStats();
+            showToast(`✅ 已同步 ${pool.length} 个知识点！`);
+            renderQuizPage();
+        } else {
+            showToast('同步失败');
+        }
+    } catch (err) {
+        showToast('同步失败：' + err.message);
+    }
+}
+
+function selectQuizLevel(l) {
+    quizLevel = l;
+    quizBranch = '';
+    quizQuestions = [];
+    quizIndex = 0;
+    quizAnswers = {};
+    quizReviewed = new Set();
+    renderQuizPage();
+}
+
+function updateQuizCount(c) {
+    MAX_QUIZ_COUNT = c;
+    renderQuizPage();
+}
+
+function selectQuizBranch(b) {
+    quizBranch = b;
+    quizQuestions = [];
+    quizIndex = 0;
+    quizAnswers = {};
+    quizReviewed = new Set();
+    renderQuizPage();
+}
+
+async function submitQuizNow() {
+    if (Object.keys(quizAnswers).length === 0) {
+        showToast('尚未回答任何题目');
+        return;
+    }
+    
+    const assessments = Object.entries(quizAnswers).map(([id, k]) => ({ node_id: id, known: k }));
+    try {
+        await fetch(`${API}/users/${USER_ID}/assess`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: USER_ID, assessments })
+        });
+        
+        await loadUserKnowledge();
+        updateStats(); // 同步更新导航栏角标
+        quizQuestions = [];
+        quizIndex = 0;
+        quizAnswers = {};
+        quizReviewed = new Set();
+        
+        showToast('同步结果已提交！');
+        renderQuizPage();
+    } catch(err) {
+        showToast('提交失败：' + err.message);
+    }
+}
+
+async function startQuiz() {
+    if (!quizLevel) { showToast('请先选择年级'); return; }
+
+    // 过滤：排除本轮已同步的 + 排除历史上已同步的（userKnowledge中状态为known或unknown）
+    let pool = allNodes.filter(n => {
+        const isThisGrade = (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === quizLevel;
+        const isThisBranch = !quizBranch || n.branch === quizBranch;
+        const isReviewedThisRound = quizReviewed.has(n.id);
+        const isAssessedBefore = userKnowledge[n.id]?.status === 'known' || userKnowledge[n.id]?.status === 'unknown';
+        return isThisGrade && isThisBranch && !isReviewedThisRound && !isAssessedBefore;
+    });
+
+    if (pool.length === 0) { showToast('该范围内知识点已全部同步完毕'); return; }
+
+    // 随机打乱，取最多 MAX_QUIZ_COUNT 题目
+    pool.sort(() => Math.random() - 0.5);
+    quizQuestions = pool.slice(0, MAX_QUIZ_COUNT);
+    quizIndex = 0;
+    quizAnswers = {};
+    renderQuizContent();
+}
+
+async function renderQuizContent() {
+    const el = document.getElementById('quizContent');
+    if (!el) return;
+
+    if (quizQuestions.length === 0 || quizIndex >= quizQuestions.length) {
+        if (Object.keys(quizAnswers).length > 0) {
+            // 保存到后端
+            const assessments = Object.entries(quizAnswers).map(([id, k]) => ({ node_id: id, known: k }));
+            await fetch(`${API}/users/${USER_ID}/assess`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: USER_ID, assessments })
+            }).catch(() => {});
+            await loadUserKnowledge();
+            const done = Object.keys(quizAnswers).length;
+            el.innerHTML = `<div class="quiz-card" style="text-align:center">
+                <div style="font-size:2em;margin-bottom:12px">🎉</div>
+                <div style="font-size:1.1em;font-weight:600;margin-bottom:8px">本轮同步完成！</div>
+                <div style="color:var(--text-secondary);margin-bottom:6px">已完成 <strong>${done}</strong> 道题，已保存</div>
+                <div style="color:var(--text-secondary);margin-bottom:16px;font-size:.85em">同步结果已自动保存</div>
+                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+                    <button class="quiz-action-btn primary" onclick="startQuiz()">再测一轮</button>
+                    <button class="quiz-action-btn" onclick="renderQuizPage()">更换年级/分支</button>
+                    <button class="quiz-action-btn" onclick="showPage('stats')">查看统计</button>
+                </div>
+            </div>`;
+        } else {
+            el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-title">选择年级和分支开始同步</div></div>`;
+        }
+        return;
+    }
+
+    const q = quizQuestions[quizIndex];
+    const pct = (quizIndex / quizQuestions.length * 100).toFixed(0);
+    const gradeTag = q.tags && q.tags.find(t => GRADE_COLOR[t]) || quizLevel;
+    const branchName = BRANCH_NAMES[q.branch] || q.branch || '';
+    const desc = q.description?.zh || q.description || '';
+    const diffLabel = ['','基础','基础','中等','中等','较难','较难','困难','困难','很难','极难'][q.difficulty] || '中等';
+    const impLabel = ['','了解','了解','理解','理解','掌握','掌握','重点','重点','核心','核心'][q.importance] || '掌握';
+    const typeLabels = {'concept':'📖 概念','theorem':'📐 定理','formula':'📐 公式','method':'🔧 方法','law':'⚖️ 定律','axiom':'📌 公理','conjecture':'🔮 猜想'};
+    const typeLabel = typeLabels[q.type] || '📖 知识点';
+
+    el.innerHTML = `<div class="quiz-card">
+        <div class="quiz-progress-wrap" style="margin-bottom:14px">
+            <div class="quiz-progress-track"><div class="quiz-progress-fill" style="width:${pct}%"></div></div>
+            <div class="quiz-progress-text">${quizIndex + 1}/${quizQuestions.length}</div>
+        </div>
+        <div class="quiz-question">${q.name?.zh || q.name || ''}</div>
+        <div class="quiz-meta" style="margin-bottom:12px">
+            <span class="quiz-meta-tag mt-grade">${gradeTag}</span>
+            ${branchName ? `<span class="quiz-meta-tag mt-branch">${branchName}</span>` : ''}
+            <span class="quiz-meta-tag" style="background:#fef3c7;color:#92400e">${typeLabel}</span>
+            <span class="quiz-meta-tag" style="background:#dbeafe;color:#1e40af">难度 ${diffLabel}</span>
+            <span class="quiz-meta-tag" style="background:#fce7f3;color:#9d174d">重要 ${impLabel}</span>
+            ${quizAnswers[q.id] !== undefined ? `<span class="quiz-meta-tag" style="background:#ede9fe;color:#7c3aed">${quizAnswers[q.id]?'✅ 掌握':'❌ 不熟悉'}</span>` : ''}
+        </div>
+        ${desc ? `<div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:.88em;color:#475569;line-height:1.6;border-left:3px solid #6366f1">${desc}</div>` : ''}
+        <div class="quiz-btn-group">
+            <button class="quiz-btn quiz-btn-known${quizAnswers[q.id]===true?' active':''}" onclick="answerQuiz(true)">✅ 掌握</button>
+            <button class="quiz-btn quiz-btn-unknown${quizAnswers[q.id]===false?' active':''}" onclick="answerQuiz(false)">❌ 不熟悉</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+            <button class="quiz-action-btn" onclick="prevQuiz()" ${quizIndex===0?'disabled style="opacity:.4;cursor:not-allowed"':''}>← 上一题</button>
+            <div style="display:flex;gap:8px">
+                ${Object.keys(quizAnswers).length > 0 ? `<button class="quiz-action-btn primary" onclick="submitQuiz()" style="background:#10b981;color:#fff;">📤 提交</button>` : ''}
+                ${quizIndex < quizQuestions.length - 1 ? `<button class="quiz-action-btn" onclick="nextQuiz()">下一题 →</button>` : `<button class="quiz-action-btn" onclick="renderQuizPage()">🔙 回到设置</button>`}
+            </div>
+        </div>
+    </div>`;
+}
+
+async function answerQuiz(known) {
+    const q = quizQuestions[quizIndex];
+    const id = q.id;
+    quizAnswers[id] = known;
+    quizReviewed.add(id);
+    // 自动跳到下一题
+    if (quizIndex < quizQuestions.length - 1) {
+        quizIndex++;
+        renderQuizContent();
+    } else {
+        // 最后一题答完后直接提交
+        submitQuiz();
+    }
+}
+
+function prevQuiz() {
+    if (quizIndex > 0) {
+        quizIndex--;
+        renderQuizContent();
+    }
+}
+
+function nextQuiz() {
+    if (quizIndex < quizQuestions.length - 1) {
+        quizIndex++;
+        renderQuizContent();
+    }
+}
+
+async function submitQuiz() {
+    if (Object.keys(quizAnswers).length === 0) {
+        showToast('还没有同步记录，请先回答题目');
+        return;
+    }
+
+    const assessments = Object.entries(quizAnswers).map(([id, k]) => ({ node_id: id, known: k }));
+    try {
+        const response = await fetch(`${API}/users/${USER_ID}/assess`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: USER_ID, assessments })
+        });
+        
+        if (response.ok) {
+            showToast(`提交成功！共提交${Object.keys(quizAnswers).length}道题`);
+            // 保存后清除当前同步状态
+            quizQuestions = [];
+            quizIndex = 0;
+            quizAnswers = {};
+            quizReviewed = new Set();
+            await loadUserKnowledge();
+            updateStats(); // 同步更新导航栏角标
+            renderQuizPage(); // 回到同步页面
+        } else {
+            showToast('提交失败');
+        }
+    } catch (error) {
+        showToast('提交失败，网络错误');
+    }
+}
+
+function skipQuiz() {
+    const q = quizQuestions[quizIndex];
+    const id = q.id;
+    quizReviewed.add(id); // 标记为已跳过，防止下一轮重复出现
+    if (quizIndex < quizQuestions.length - 1) {
+        quizIndex++;
+        renderQuizContent();
+    } else {
+        renderQuizPage(); // 最后一题跳过时回到设置页
+    }
+}
+
+// ============================================================
+async function renderStatsPage(){
+    document.getElementById('mainContent').innerHTML=`<div class="stats-page">
+        <div class="stats-hero" id="statsHero"></div>
+        <div class="stats-grid">
+            <div class="stats-card"><div class="stats-card-title">📈 年级掌握情况</div><div id="levelStats"></div></div>
+            <div class="stats-card"><div class="stats-card-title">🔬 分支掌握情况</div><div id="branchStats"></div></div>
+        </div>
+    </div>`;
+    // 计算统计
+    const levelStats={},branchStats={};
+    GRADE_LEVELS.filter(g=>g.id!=='all').forEach(g=>levelStats[g.id]={total:0,known:0});
+    Object.values(BRANCH_NAMES).forEach(b=>branchStats[b]={total:0,known:0});
+    allNodes.forEach(n=>{
+        const grade=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
+        if(grade&&levelStats[grade]){levelStats[grade].total++;if(userKnowledge[n.id]?.status==='known')levelStats[grade].known++}
+        const br=BRANCH_NAMES[n.branch]||n.branch;
+        if(branchStats[br]){branchStats[br].total++;if(userKnowledge[n.id]?.status==='known')branchStats[br].known++}
+    });
+    const totalKnown=Object.values(levelStats).reduce((s,v)=>s+v.known,0);
+    const total=allNodes.length;
+    const pct=total>0?Math.round(totalKnown/total*100):0;
+    document.getElementById('statsHero').innerHTML=`
+        <div class="hero-stat"><div class="hero-stat-value">${allNodes.length}</div><div class="hero-stat-label">总知识点</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">${totalKnown}</div><div class="hero-stat-label">已掌握</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">${total-totalKnown}</div><div class="hero-stat-label">待学习</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">${pct}%</div><div class="hero-stat-label">掌握率</div></div>`;
+    document.getElementById('levelStats').innerHTML=GRADE_LEVELS.filter(g=>g.id!=='all'&&levelStats[g.id]?.total>0).map(g=>{
+        const s=levelStats[g.id],p=s.total>0?Math.round(s.known/s.total*100):0;
+        return`<div class="level-bar-item">
+            <div class="level-bar-header"><span class="level-bar-name">${g.name}</span><span class="level-bar-count">${s.known}/${s.total}</span></div>
+            <div class="level-bar-track"><div class="level-bar-fill" style="width:${p}%;background:${g.color}"></div></div>
+        </div>`;
+    }).join('');
+    document.getElementById('branchStats').innerHTML=Object.entries(branchStats).filter(([,v])=>v.total>0).sort((a,b)=>b[1].total-a[1].total).slice(0,10).map(([k,v])=>{
+        const p=v.total>0?Math.round(v.known/v.total*100):0;
+        const colors=['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#ec4899','#14b8a6','#f97316'];
+        return`<div class="level-bar-item">
+            <div class="level-bar-header"><span class="level-bar-name">${k}</span><span class="level-bar-count">${v.known}/${v.total}</span></div>
+            <div class="level-bar-track"><div class="level-bar-fill" style="width:${p}%;background:${colors[Object.keys(branchStats).indexOf(k)%colors.length]}"></div></div>
+        </div>`;
+    }).join('');
+}
+
+// ============================================================
+async function openDetail(id){
+    const n=allNodes.find(x=>x.id===id);if(!n)return;
+    document.getElementById('detailPanel').classList.remove('hidden');
+    document.getElementById('detailTitle').textContent=n.name?.zh||n.name||'';
+    document.getElementById('detailSubtitle').textContent=`${n.type||'concept'} · ${BRANCH_NAMES[n.branch]||n.branch||'其他'}`;
+    const gradeTag=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
+    const content=document.getElementById('detailContent');
+    content.innerHTML=`
+        <div class="detail-section"><div class="detail-section-title">描述</div><div class="detail-desc">${n.description?.zh||n.description||'暂无描述'}</div></div>
+        <div class="detail-section"><div class="detail-section-title">年级</div><div class="detail-tags">${gradeTag?`<span class="detail-tag" style="background:#f1f5f9;color:${GRADE_COLOR[gradeTag]||'var(--text)'};border:1px solid var(--border)">${gradeTag}</span>`:'<span style="color:var(--text-secondary)">未设置</span>'}</div></div>
+        <div class="detail-section"><div class="detail-section-title">标签</div><div class="detail-tags">${(n.tags||[]).map(t=>`<span class="detail-tag" style="background:${GRADE_COLOR[t]?'#f1f5f9':'var(--bg)'};color:${GRADE_COLOR[t]||'var(--text-secondary)'};border:1px solid ${GRADE_COLOR[t]||'var(--border)'}">${t}</span>`).join('')}</div></div>
+        <div class="detail-section"><div class="detail-section-title">指标</div>
+            <div class="detail-metrics">
+                <div class="metric-card"><div class="metric-value">${n.difficulty}</div><div class="metric-label">难度</div></div>
+                <div class="metric-card"><div class="metric-value">${n.importance}</div><div class="metric-label">重要性</div></div>
+                <div class="metric-card"><div class="metric-value">${n.estimated_minutes||60}</div><div class="metric-label">分钟</div></div>
+            </div>
+        </div>
+        ${(n.prerequisites||[]).length>0?`<div class="detail-section"><div class="detail-section-title">前置知识</div><div class="prereq-list">${(await getPrereqDetails(n.prerequisites)).map(p=>`<div class="rel-item" onclick="openDetail('${p.id}')"><div class="rel-arrow">←</div><span>${p.name?.zh||p.name||p.id}</span></div>`).join('')}</div></div>`:''}
+        <div class="detail-section"><div class="detail-section-title">后续知识</div><div id="nextNodesList"><div class="loading" style="padding:10px;font-size:.85em">加载中</div></div></div>
+    `;
+    // 加载后续知识
+    fetchNextNodes(n.id);
+}
+
+async function getPrereqDetails(ids){
+    return ids.map(id=>{const n=allNodes.find(x=>x.id===id);return n?{id:n.id,name:n.name}:{id,name:{zh:id}}}).filter(x=>x);
+}
+
+async function fetchNextNodes(nodeId){
+    const next=allNodes.filter(n=>(n.prerequisites||[]).includes(nodeId));
+    const el=document.getElementById('nextNodesList');
+    if(!el)return;
+    if(next.length===0){el.innerHTML='<div style="font-size:.85em;color:var(--text-secondary)">暂无后续知识</div>';return}
+    el.innerHTML=next.slice(0,10).map(n=>`<div class="rel-item" onclick="openDetail('${n.id}')"><div class="rel-arrow">→</div><span>${n.name?.zh||n.name||n.id}</span></div>`).join('');
+}
+
+function closeDetail(){document.getElementById('detailPanel').classList.add('hidden')}
+
+// ============================================================
+function handleSearch(q){
+    const el=document.getElementById('searchResults');
+    if(!q.trim()){el.classList.remove('show');return}
+    const results=allNodes.filter(n=>(n.name?.zh||'').includes(q)||(n.name?.en||'').includes(q)||(n.description?.zh||'').includes(q)).slice(0,8);
+    if(results.length===0){el.innerHTML=`<div class="search-item"><div class="search-item-name">未找到结果</div></div>`;el.classList.add('show');return}
+    el.innerHTML=results.map(n=>`<div class="search-item" onclick="openDetail('${n.id}');document.getElementById('searchResults').classList.remove('show');document.getElementById('searchInput').value=''">
+        <div class="search-item-name">${n.name?.zh||n.name||''}</div>
+        <div class="search-item-meta">${(n.grade||n.tags?.find(t=>GRADE_COLOR[t]))||''}${((n.grade||n.tags?.find(t=>GRADE_COLOR[t]))&&n.branch)?' · ':''}${BRANCH_NAMES[n.branch]||n.branch||''}</div>
+    </div>`).join('');
+    el.classList.add('show');
+}
+
+function showToast(msg){
+    const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ============================================================
+document.addEventListener('DOMContentLoaded',init);
+</script></body></html>
