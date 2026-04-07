@@ -147,6 +147,20 @@
 
 ## 🚦 启动服务
 
+### 方式一 导入 QClaw（推荐）🦞
+
+将知识图谱导入到 **龙虾 QClaw** 中，通过自然语言对话来进行学习：
+
+1. **导入知识图谱**  
+   下载项目， 直接放入～/.qclaw/workspace/
+
+   
+2. **启动服务**
+   对话加载/启动知识图谱，
+   对话开始使用
+
+### 方式二 本地Web服务
+
 ```bash
 cd ~/.qclaw/workspace/math-knowledge-graph
 uvicorn app.api.main:app --host 0.0.0.0 --port 8088
