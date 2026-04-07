@@ -79,7 +79,27 @@
         .diff-dot{width:7px;height:7px;border-radius:50%;background:#e2e8f0}
         .diff-dot.filled{background:#f59e0b}
         .time-est{font-size:.76em;color:var(--text-secondary)}
-        .prereq-chip{font-size:.76em;color:var(--text-secondary);padding:2px 7px;background:var(--bg);border-radius:10px}
+        .prereq-chip{
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+            padding:4px 8px;
+            background:#f1f5f9;
+            border-radius:6px;
+            font-size:.8em;
+            color:#64748b;
+            font-weight:500;
+            transition:all .2s
+        }
+        .prereq-chip.has{
+            background:#dbeafe;
+            color:#0284c7
+        }
+        .prereq-chip.isolated{
+            background:#fee2e2;
+            color:#dc2626;
+            font-weight:600
+        }
         .prereq-chip.has{color:var(--primary);font-weight:500;background:#ede9fe}
         .detail-panel{width:360px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:20px}
         .detail-panel.hidden{display:none}
@@ -110,7 +130,6 @@
         .quiz-meta{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
         .quiz-meta-tag{font-size:.75em;padding:2px 8px;border-radius:10px;font-weight:500}
         .quiz-meta-tag.mt-grade{background:#f1f5f9;color:var(--text-secondary)}.quiz-meta-tag.mt-branch{background:#f0fdf4;color:#15803d}
-        .nav-quiz-badge{display:inline-block;background:#10b981;color:#fff;font-size:.65em;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle;line-height:1.4}
         .quiz-btn-group{display:flex;gap:10px}
         .quiz-btn{flex:1;padding:11px;border:none;border-radius:10px;font-size:.97em;font-weight:600;cursor:pointer;transition:all .2s}
         .quiz-btn-known{background:#dcfce7;color:#16a34a}.quiz-btn-known:hover{background:#16a34a;color:#fff}
@@ -165,7 +184,9 @@
     <div class="topbar-nav">
         <button class="nav-btn active" data-page="graph" onclick="showPage('graph')">🗺️ 图谱</button>
         <button class="nav-btn" data-page="list" onclick="showPage('list')">📋 知识库</button>
-        <button class="nav-btn" data-page="quiz" onclick="showPage('quiz')" id="navQuizBtn">📝 同步</button>
+        <button class="nav-btn" data-page="conjectures" onclick="showPage('conjectures')">🚀 前沿问题</button>
+        <button class="nav-btn" data-page="mathematicians" onclick="showPage('mathematicians')">👨‍🔬 数学家</button>
+        <button class="nav-btn" data-page="quiz" onclick="showPage('quiz')">📝 同步</button>
         <button class="nav-btn" data-page="stats" onclick="showPage('stats')">📊 统计</button>
     </div>
     <div class="topbar-right">
@@ -212,6 +233,8 @@
 
 <script>
 const API='http://localhost:8088',USER_ID='default';
+// 全局辅助函数
+function getPrereqIds(p){return(p||[]).map(x=>typeof x==='object'?x.nodeId:x);}
 const GRADE_LEVELS=[
     {id:'all',name:'全部',color:'#6366f1'},
     {id:'小学一年级',name:'小学一年级',color:'#10b981'},{id:'小学二年级',name:'小学二年级',color:'#059669'},
@@ -222,26 +245,51 @@ const GRADE_LEVELS=[
     {id:'高中二年级',name:'高中二年级',color:'#1d4ed8'},{id:'高中三年级',name:'高中三年级',color:'#1e40af'},
     {id:'大学及以上',name:'大学及以上',color:'#374151'},
 ];
-const BRANCH_NAMES={arithmetic:'算术',algebra:'代数',geometry:'几何',analysis:'分析',probability:'概率',statistics:'统计',discrete:'离散数学',number_theory:'数论',logic:'逻辑',topology:'拓扑',applied:'应用数学',other:'其他',trigonometry:'三角学',dynamics:'动力系统',numerical:'数值分析',optimization:'优化',pde:'微分方程',physics:'数学物理'};
+const BRANCH_NAMES={arithmetic:'算术',algebra:'代数',geometry:'几何',analysis:'分析',probability:'概率',statistics:'统计',discrete:'离散数学',number_theory:'数论',logic:'逻辑',topology:'拓扑',applied:'应用数学',other:'其他',trigonometry:'三角学',dynamics:'动力系统',numerical:'数值分析',optimization:'优化',pde:'微分方程',physics:'数学物理',
+// 中文分支
+'小学数学':'小学数学','高等数学':'高等数学','拓扑学':'拓扑学','图论':'图论','博弈论':'博弈论','范畴论':'范畴论','随机过程':'随机过程','算术':'算术','控制论':'控制论','线性代数':'线性代数','复分析':'复分析','概率论':'概率论','统计学':'统计学','组合数学':'组合数学','离散数学':'离散数学','逻辑学':'逻辑学','优化理论':'优化理论','动力系统':'动力系统','数值分析':'数值分析','偏微分方程':'偏微分方程','集合论':'集合论','三角学':'三角学','数论':'数论','泛函分析':'泛函分析','微分几何':'微分几何','抽象代数':'抽象代数',
+// 详细分支
+'抽象代数(详细)':'抽象代数(详细)','微分几何(详细)':'微分几何(详细)','复分析(详细)':'复分析(详细)',
+// 英文分支
+'functional_analysis':'泛函分析','differential_geometry':'微分几何','abstract_algebra':'抽象代数','category_theory':'范畴论','stochastic_processes':'随机过程','graph_theory':'图论','game_theory':'博弈论','control_theory':'控制论'};
 const TYPE_BADGE={concept:'tb-concept',theorem:'tb-theorem',formula:'tb-formula',method:'tb-method',law:'tb-law',conjecture:'tb-conjecture'};
 const GRADE_COLOR={};GRADE_LEVELS.forEach(g=>GRADE_COLOR[g.id]=g.color);
 
 let allNodes=[],filteredNodes=[],userKnowledge={},currentPage='graph',selectedGrade='all',selectedBranch='';
 let currentSimulation=null;
 let quizQuestions=[],quizIndex=0,quizAnswers={},quizLevel='',quizBranch='';
-let MAX_QUIZ_COUNT = 50; // 同步题目数量限制，可在此修改默认值
 let quizReviewed=new Set(); // 本轮已同步的节点ID（避免userKnowledge残留干扰）
 let graphMode='all';
+let graphFocusNodeId=null; // 图谱聚焦节点ID
+let inLinks=new Map(); // 全局入边映射，用于renderList
 
 // ============================================================
 async function init(){
     await Promise.all([loadNodes(),loadUserKnowledge(),loadBranches()]);
+    // 初始化全局inLinks映射
+    initInLinks();
     renderGradeFilter();renderBranchFilter();updateStats();showPage('graph');
+}
+
+// 初始化全局入边映射
+function initInLinks(){
+    inLinks=new Map();
+    const nodeIds=new Set(allNodes.map(n=>n.id));
+    allNodes.forEach(n=>{
+        if(n.prerequisites){
+            for(const p of n.prerequisites){
+                const pid=typeof p==='object'?p.nodeId:p;
+                if(nodeIds.has(pid)){
+                    inLinks.set(n.id,(inLinks.get(n.id)||[]).concat([pid]));
+                }
+            }
+        }
+    });
 }
 
 async function loadNodes(){
     try{
-        const r=await fetch(`${API}/nodes?limit=10000`);
+        const r=await fetch(`${API}/nodes?limit=50000`);
         const d=await r.json();
         allNodes=d.nodes||[];applyFilters();
     }catch(e){allNodes=[]}
@@ -276,10 +324,7 @@ async function loadBranches(){
 
 function applyFilters(){
     filteredNodes=allNodes.filter(n=>{
-        if(selectedGrade!=='all'){
-            const grade=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
-            if(grade!==selectedGrade)return false;
-        }
+        if(selectedGrade!=='all'){if(!n.tags||!n.tags.includes(selectedGrade))return false}
         if(selectedBranch&&n.branch!==selectedBranch)return false;
         return true;
     });
@@ -289,11 +334,7 @@ function applyFilters(){
 function renderGradeFilter(){
     const el=document.getElementById('gradeFilter');
     const counts={all:allNodes.length};
-    allNodes.forEach(n=>{
-        // 优先使用grade字段
-        const grade=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
-        if(grade)counts[grade]=(counts[grade]||0)+1;
-    });
+    allNodes.forEach(n=>{if(n.tags)for(const t of n.tags){counts[t]=(counts[t]||0)+1}});
     el.innerHTML=GRADE_LEVELS.map(g=>`<button class="grade-btn${selectedGrade===g.id?' active':''}" onclick="selectGrade('${g.id}')">
         <span class="grade-dot" style="background:${g.color}"></span>
         <span class="grade-name">${g.name}</span>
@@ -307,23 +348,6 @@ function toggleBranch(b){selectedBranch=selectedBranch===b?'':b;applyFilters();l
 
 function updateStats(){
     document.getElementById('totalNodes').textContent=allNodes.length;
-    // 同步更新导航栏同步角标
-    const assessedCount = Object.values(userKnowledge).filter(v=>v?.status==='known'||v?.status==='unknown').length;
-    const navBtn=document.getElementById('navQuizBtn');
-    if(navBtn){
-        const existingBadge=navBtn.querySelector('.nav-quiz-badge');
-        if(assessedCount>0){
-            if(existingBadge){existingBadge.textContent=assessedCount;}
-            else{
-                const badge=document.createElement('span');
-                badge.className='nav-quiz-badge';
-                badge.textContent=assessedCount;
-                navBtn.appendChild(badge);
-            }
-        } else {
-            if(existingBadge)existingBadge.remove();
-        }
-    }
 }
 
 // ============================================================
@@ -333,6 +357,8 @@ function showPage(page){
     switch(page){
         case'graph':renderGraphPage();break;
         case'list':renderListPage();break;
+        case'conjectures':renderConjecturesPage();break;
+        case'mathematicians':renderMathematiciansPage();break;
         case'quiz':renderQuizPage();break;
         case'stats':renderStatsPage();break;
     }
@@ -350,6 +376,7 @@ function renderGraphPage(){
                 <button class="mini-btn${graphMode==='branch'?' active':''}" onclick="setGraphMode('branch')">按分支</button>
             </div>
             <button class="mini-btn" onclick="resetGraph()">🔄 重置</button>
+            <span id="graphFocusLabel" style="display:none;font-size:.82em;padding:4px 10px;background:#fce7f3;color:#db2777;border-radius:20px;font-weight:500"></span>
             <button class="mini-btn" onclick="graphZoom(1.3)">➕ 放大</button>
             <button class="mini-btn" onclick="graphZoom(0.7)">➖ 缩小</button>
         </div>
@@ -366,6 +393,7 @@ function renderGraphPage(){
 function setGraphMode(m){graphMode=m;renderGraph();}
 
 function renderGraph(){
+    // getPrereqIds 已移至全局作用域 (index.html 顶部)
     const svgEl=document.getElementById('graphSvg');
     if(!svgEl)return;
     const container=svgEl.parentElement;
@@ -374,17 +402,35 @@ function renderGraph(){
     svg.selectAll('*').remove();
     if(currentSimulation){currentSimulation.stop();currentSimulation=null}
 
-    // 准备数据：显示更多节点(1000)，让边能充分显示
-    let displayCount = Math.min(filteredNodes.length, 1000);
-    let nodes=filteredNodes.slice(0,displayCount).map(n=>({...n,rid:n.id}));
+    // 准备数据
+    let displayCount, nodes;
+    
+    // 如果有聚焦节点，显示该节点及其关联知识（最多50个）
+    if(graphFocusNodeId){
+        const focusNode=allNodes.find(n=>n.id===graphFocusNodeId);
+        if(!focusNode){graphFocusNodeId=null;renderGraph();return}
+        
+        const neighborIds=new Set([graphFocusNodeId]);
+        // 加入前置知识
+        (getPrereqIds(focusNode.prerequisites)||[]).forEach(pid=>neighborIds.add(pid));
+        // 加入后续知识
+        allNodes.forEach(n=>{if(getPrereqIds(n.prerequisites).includes(graphFocusNodeId))neighborIds.add(n.id)});
+        // 限制邻居节点数
+        const allNeighborIds=[...neighborIds];
+        nodes=allNodes.filter(n=>neighborIds.has(n.id)).slice(0,50).map(n=>({...n,rid:n.id,isFocus:n.id===graphFocusNodeId}));
+        displayCount=nodes.length;
+    } else {
+        displayCount=Math.min(filteredNodes.length,500);
+        nodes=filteredNodes.slice(0,displayCount).map(n=>({...n,rid:n.id,isFocus:false}));
+    }
     const nodeIds=new Set(nodes.map(n=>n.rid));
 
     // 建立边的双向映射
     const links=[];
     const outLinks=new Map(); // source -> [targets]
-    const inLinks=new Map();  // target -> [sources]
+    inLinks=new Map();  // target -> [sources] (全局变量)
     nodes.forEach(n=>{
-        if(n.prerequisites)for(const p of n.prerequisites){
+        if(n.prerequisites)for(const p of getPrereqIds(n.prerequisites)){
             if(nodeIds.has(p)){
                 links.push({source:p,target:n.id});
                 outLinks.set(p,(outLinks.get(p)||[]).concat([n.id]));
@@ -399,7 +445,7 @@ function renderGraph(){
     let virtualCount=0;
     const prereqsOutside=new Map(); // nid -> count of outside prereqs
     nodes.forEach(n=>{
-        const prereqs=n.prerequisites||[];
+        const prereqs=getPrereqIds(n.prerequisites)||[];
         const outside=prereqs.filter(p=>!nodeIds.has(p));
         if(outside.length>0){
             virtualCount++;
@@ -413,16 +459,33 @@ function renderGraph(){
     });
 
     document.getElementById('graphNodeCount').textContent=nodes.length+virtualNodes.length;
+    // 显示/隐藏聚焦标签
+    const focusLabel=document.getElementById('graphFocusLabel');
+    if(graphFocusNodeId){
+        const fn=allNodes.find(n=>n.id===graphFocusNodeId);
+        focusLabel.textContent='🎯 聚焦: '+(fn?.name?.zh||graphFocusNodeId);
+        focusLabel.style.display='inline-block';
+    } else {
+        focusLabel.style.display='none';
+    }
     document.getElementById('graphEdgeCount').textContent=links.length;
 
     // 节点颜色
     function nodeColor(d){
         if(d.isVirtual)return '#e2e8f0';
+        // 聚焦节点高亮
+        if(d.isFocus)return '#db2777';
         if(graphMode==='grade'){
             const g=d.tags&&d.tags.find(t=>GRADE_COLOR[t]);
             return g?GRADE_COLOR[g]:'#94a3b8';
         } else if(graphMode==='branch'){
-            const colors={arithmetic:'#10b981',algebra:'#6366f1',geometry:'#f59e0b',analysis:'#ef4444',probability:'#8b5cf6',statistics:'#06b6d4',discrete:'#84cc16',number_theory:'#ec4899',logic:'#14b8a6',topology:'#f97316',other:'#94a3b8'};
+            const colors={arithmetic:'#10b981',algebra:'#6366f1',geometry:'#f59e0b',analysis:'#ef4444',probability:'#8b5cf6',statistics:'#06b6d4',discrete:'#84cc16',number_theory:'#ec4899',logic:'#14b8a6',topology:'#f97316',other:'#94a3b8',
+            // 中文分支
+            '小学数学':'#f97316','高等数学':'#ef4444','拓扑学':'#f97316','图论':'#84cc16','博弈论':'#ec4899','范畴论':'#14b8a6','随机过程':'#8b5cf6','算术':'#10b981','控制论':'#06b6d4','线性代数':'#6366f1','复分析':'#ef4444','概率论':'#8b5cf6','统计学':'#06b6d4','组合数学':'#84cc16','离散数学':'#84cc16','逻辑学':'#14b8a6','优化理论':'#f59e0b','动力系统':'#f97316','数值分析':'#ef4444','偏微分方程':'#ef4444','集合论':'#14b8a6','三角学':'#f59e0b','数论':'#ec4899','泛函分析':'#ef4444','微分几何':'#f59e0b','抽象代数':'#6366f1',
+            // 详细分支
+            '抽象代数(详细)':'#8b5cf6','微分几何(详细)':'#8b5cf6','复分析(详细)':'#8b5cf6',
+            // 英文分支
+            'functional_analysis':'#ef4444','differential_geometry':'#f59e0b','abstract_algebra':'#6366f1','category_theory':'#14b8a6','stochastic_processes':'#8b5cf6','graph_theory':'#84cc16','game_theory':'#ec4899','control_theory':'#06b6d4'};
             return colors[d.branch]||'#94a3b8';
         }
         const known=userKnowledge[d.id]?.status==='known';
@@ -435,7 +498,7 @@ function renderGraph(){
         legendEl.innerHTML=GRADE_LEVELS.slice(1).map(g=>`<div class="legend-row"><div class="legend-circle" style="background:${g.color}"></div><span>${g.name}</span></div>`).join('');
     } else if(graphMode==='branch'){
         const used=new Set(nodes.map(n=>n.branch));
-        legendEl.innerHTML=Object.entries(BRANCH_NAMES).filter(([k])=>used.has(k)).map(([k,v])=>`<div class="legend-row"><div class="legend-circle" style="background:${{arithmetic:'#10b981',algebra:'#6366f1',geometry:'#f59e0b',analysis:'#ef4444',probability:'#8b5cf6',statistics:'#06b6d4',discrete:'#84cc16',number_theory:'#ec4899',logic:'#14b8a6',topology:'#f97316'}[k]||'#94a3b8'}"></div><span>${v}</span></div>`).join('');
+        legendEl.innerHTML=Object.entries(BRANCH_NAMES).filter(([k])=>used.has(k)).map(([k,v])=>`<div class="legend-row"><div class="legend-circle" style="background:${{arithmetic:'#10b981',algebra:'#6366f1',geometry:'#f59e0b',analysis:'#ef4444',probability:'#8b5cf6',statistics:'#06b6d4',discrete:'#84cc16',number_theory:'#ec4899',logic:'#14b8a6',topology:'#f97316',other:'#94a3b8','小学数学':'#f97316','高等数学':'#ef4444','拓扑学':'#f97316','图论':'#84cc16','博弈论':'#ec4899','范畴论':'#14b8a6','随机过程':'#8b5cf6','算术':'#10b981','控制论':'#06b6d4','线性代数':'#6366f1','复分析':'#ef4444','概率论':'#8b5cf6','统计学':'#06b6d4','组合数学':'#84cc16','离散数学':'#84cc16','逻辑学':'#14b8a6','优化理论':'#f59e0b','动力系统':'#f97316','数值分析':'#ef4444','偏微分方程':'#ef4444','集合论':'#14b8a6','三角学':'#f59e0b','数论':'#ec4899','泛函分析':'#ef4444','微分几何':'#f59e0b','抽象代数':'#6366f1','抽象代数(详细)':'#8b5cf6','微分几何(详细)':'#8b5cf6','复分析(详细)':'#8b5cf6','functional_analysis':'#ef4444','differential_geometry':'#f59e0b','abstract_algebra':'#6366f1','category_theory':'#14b8a6','stochastic_processes':'#8b5cf6','graph_theory':'#84cc16','game_theory':'#ec4899','control_theory':'#06b6d4'}[k]||'#94a3b8'}"></div><span>${v}</span></div>`).join('');
     } else {
         legendEl.innerHTML=`<div class="legend-row"><div class="legend-circle" style="background:#10b981"></div><span>已掌握</span></div><div class="legend-row"><div class="legend-circle" style="background:#cbd5e0"></div><span>未同步</span></div>`;
     }
@@ -473,309 +536,192 @@ function renderGraph(){
     currentSimulation=sim;
 }
 
-function resetGraph(){renderGraph()}
+function resetGraph(){graphFocusNodeId=null;renderGraph()}
 function graphZoom(factor){const svg=d3.select('#graphSvg');svg.transition().call(d3.zoom().scaleBy,factor)}
+
+// 从猜想弹窗跳转到关联图谱
+function viewConjectureGraph(nodeId){
+    // 关闭所有弹窗
+    document.querySelectorAll('[style*="position:fixed"]').forEach(el=>{
+        if(el.style.zIndex>='1000') el.remove();
+    });
+    // 设置聚焦节点
+    graphFocusNodeId = nodeId;
+    // 切换到图谱页
+    showPage('graph');
+    // 稍等 DOM 渲染完再高亮
+    setTimeout(()=>{
+        // 在图谱中高亮聚焦节点
+        const focusNode = allNodes.find(n=>n.id===nodeId);
+        if(!focusNode) return;
+        // 显示提示
+        showToast('🗺️ 已定位到「'+(focusNode.name?.zh||nodeId)+'」的关联图谱');
+    }, 400);
+}
 
 // ============================================================
 function renderListPage(){
-    // 构建年级按钮
-    const gradeBtns = GRADE_LEVELS.filter(g => g.id !== 'all').map(g => {
-        const count = allNodes.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === g.id).length;
-        return `<button class="mini-btn${listGrade===g.id?' active':''}" onclick="setListGrade('${g.id}')" style="padding:5px 10px;font-size:.8em">${g.name}<span style="opacity:.6;margin-left:3px">${count}</span></button>`;
-    }).join('');
-    
-    // 构建分支按钮
-    const branchMap = {};
-    allNodes.forEach(n => { const b = n.branch || 'other'; branchMap[b] = (branchMap[b]||0)+1; });
-    const branchBtns = Object.entries(branchMap).sort((a,b)=>b[1]-a[1]).map(([k,c]) => 
-        `<button class="mini-btn${listBranch===k?' active':''}" onclick="setListBranch('${k}')" style="padding:4px 9px;font-size:.78em">${BRANCH_NAMES[k]||k}(${c})</button>`
-    ).join('');
-    
     const main=document.getElementById('mainContent');
     main.innerHTML=`<div class="page-header">
-        <div style="font-size:1.1em;font-weight:600;margin-bottom:10px">📚 知识库</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${gradeBtns}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px" id="listBranchBtns">${branchBtns}</div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <input class="search-box" style="width:280px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9em" id="listSearchInput" placeholder="🔍 搜索关键词..." oninput="handleListSearch(this.value)">
-        </div>
+        <div class="page-title">知识库 <span>${filteredNodes.length} 个知识点</span></div>
+        <select class="sort-select" onchange="sortNodes(this.value)">
+            <option value="difficulty">按难度 ↑</option>
+            <option value="difficulty-desc">按难度 ↓</option>
+            <option value="importance">按重要性 ↑</option>
+            <option value="importance-desc">按重要性 ↓</option>
+            <option value="name">按名称</option>
+        </select>
     </div>
-    <div style="display:flex;gap:16px;height:calc(100vh - 250px)">
-        <div style="flex:1;overflow-y:auto;padding-right:8px" id="listResults">
-            <div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">请选择年级或分支，或搜索关键词</div>
-        </div>
-        <div style="width:380px;background:var(--surface);border-radius:12px;padding:16px;overflow-y:auto;box-shadow:var(--shadow)" id="listDetailPanel">
-            <div style="color:var(--text-secondary);font-size:.9em;text-align:center;padding:40px 0">👈 点击左侧知识点查看详情</div>
-        </div>
+    <div class="nodes-grid" id="nodesGrid"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;margin-top:10px;border-top:1px solid var(--border)">
+        <div id="paginationInfo" style="font-size:.85em;color:var(--text-secondary)"></div>
+        <div id="paginationBtns" style="display:flex;gap:4px;align-items:center"></div>
     </div>`;
-    
-    // 如果已有筛选条件，加载数据
-    if (listGrade || listBranch || (listSearchQ && listSearchQ.trim())) {
-        loadListByFilter();
-    }
+    listPage = 1;
+    renderList();
 }
 
-let listGrade = '';
-let listBranch = '';
-let listSearchQ = '';
-let listAllResults = [];
-
-function setListGrade(g) {
-    listGrade = (listGrade === g) ? '' : g;
-    listSearchQ = '';
-    document.getElementById('listSearchInput').value = '';
-    renderListPage();
-    loadListByFilter();
+function sortNodes(order){
+    switch(order){
+        case'difficulty':filteredNodes.sort((a,b)=>a.difficulty-b.difficulty);break;
+        case'difficulty-desc':filteredNodes.sort((a,b)=>b.difficulty-a.difficulty);break;
+        case'importance':filteredNodes.sort((a,b)=>a.importance-b.importance);break;
+        case'importance-desc':filteredNodes.sort((a,b)=>b.importance-a.importance);break;
+        case'name':filteredNodes.sort((a,b)=>(a.name?.zh||'').localeCompare(b.name?.zh||''));break;
+    }
+    listPage = 1;
+    renderList();
 }
 
-function setListBranch(b) {
-    listBranch = (listBranch === b) ? '' : b;
-    listSearchQ = '';
-    document.getElementById('listSearchInput').value = '';
-    renderListPage();
-    loadListByFilter();
-}
+// 分页相关变量
+let listPage = 1;
+const pageSize = 50;
 
-async function loadListByFilter() {
-    const el = document.getElementById('listResults');
+function renderList(){
+    const grid=document.getElementById('nodesGrid');
+    if(!grid)return;
+    if(filteredNodes.length===0){grid.innerHTML=`<div class="empty-state"><div class="empty-state-icon">📚</div><div class="empty-state-title">暂无数据</div></div>`;document.getElementById('paginationInfo').innerHTML='';document.getElementById('paginationBtns').innerHTML='';return}
     
-    // 优先搜索，其次年级/分支筛选
-    if (listSearchQ && listSearchQ.trim()) {
-        handleListSearch(listSearchQ);
-        return;
-    }
+    // 计算分页
+    const totalPages = Math.ceil(filteredNodes.length / pageSize);
+    const start = (listPage - 1) * pageSize;
+    const end = Math.min(start + pageSize, filteredNodes.length);
+    const pageNodes = filteredNodes.slice(start, end);
     
-    if (!listGrade && !listBranch) {
-        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">请选择年级或分支，或搜索关键词</div>`;
-        return;
-    }
-    
-    let pool = allNodes;
-    if (listGrade) pool = pool.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === listGrade);
-    if (listBranch) pool = pool.filter(n => n.branch === listBranch);
-    
-    if (pool.length === 0) {
-        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">该条件下暂无知识点</div>`;
-        return;
-    }
-    
-    // 按名称排序
-    pool.sort((a,b) => (a.name?.zh||'').localeCompare(b.name?.zh||''));
-    listAllResults = pool;
-    renderListAllResults();
-}
-
-function renderListAllResults() {
-    const el = document.getElementById('listResults');
-    const gradeColor = listGrade ? (GRADE_COLOR[listGrade] || '#6366f1') : '#6366f1';
-    
-    el.innerHTML = `<div style="color:var(--text-secondary);font-size:.8em;margin-bottom:8px">${listGrade || ''}${listGrade&&listBranch?' · ':''}${listBranch?(BRANCH_NAMES[listBranch]||listBranch):''}：共 ${listAllResults.length} 个知识点</div>` + 
-        listAllResults.map(r => {
-            const rGrade = r.grade || '';
-            const rBranchName = BRANCH_NAMES[r.branch] || r.branch || '';
-            const rGradeColor = rGrade ? (GRADE_COLOR[rGrade] || '#6366f1') : gradeColor;
-            return `<div class="node-card" onclick="showListNodeDetail('${r.id}')" style="margin-bottom:10px;padding:14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s">
-                <div style="display:flex;justify-content:space-between;align-items:start">
-                    <div style="flex:1">
-                        <div style="font-weight:600;margin-bottom:4px">${r.name?.zh || r.name || r.id}</div>
-                        <div style="font-size:.8em;color:var(--text-secondary)">${r.id}</div>
-                    </div>
-                    <div style="display:flex;gap:4px;flex-wrap:wrap">
-                        ${rGrade ? `<span style="padding:2px 8px;background:${rGradeColor}20;color:${rGradeColor};border-radius:10px;font-size:.75em">${rGrade}</span>` : ''}
-                        ${rBranchName ? `<span style="padding:2px 8px;background:#10b98120;color:#10b981;border-radius:10px;font-size:.75em">${rBranchName}</span>` : ''}
-                    </div>
+    grid.innerHTML=pageNodes.map(n=>{
+        const gradeTag=n.tags&&n.tags.find(t=>GRADE_COLOR[t]);
+        const borderColor=gradeTag?GRADE_COLOR[gradeTag]:'var(--primary)';
+        const hasPrereq=n.prerequisites&&n.prerequisites.length>0;
+        const inDegree=(inLinks.get(n.id)||[]).length;
+        const isIsolated=!hasPrereq&&inDegree===0;
+        const diffDots=Array.from({length:10},(_,i)=>`<div class="diff-dot${i<n.difficulty?' filled':''}"></div>`).join('');
+        return `<div class="node-card" onclick="openDetail('${n.id}')" style="--accent:${borderColor}">
+            <style>.node-card[style*="${borderColor}"]::before{background:${borderColor}}</style>
+            <div class="node-card-header">
+                <div class="node-card-title">${n.name?.zh||n.name||''}</div>
+                <div style="display:flex;gap:4px;align-items:center">
+                    <span class="type-badge ${TYPE_BADGE[n.type]||'tb-concept'}">${n.type||'概念'}</span>
+                    <a href="/app/web/admin.html?node=${n.id}" target="_blank" onclick="event.stopPropagation()" style="padding:2px 6px;background:#6366f1;color:#fff;text-decoration:none;border-radius:4px;font-size:.7em">管理</a>
                 </div>
-                <div style="margin-top:8px;font-size:.82em;color:var(--text-secondary)">${(r.description?.zh || r.description || '暂无描述').substring(0, 100)}...</div>
-            </div>`;
-        }).join('');
-}
-
-let listSearchResults = [];
-async function handleListSearch(q) {
-    listSearchQ = q;
-    listGrade = '';
-    listBranch = '';
-    renderListPage(); // 重新渲染，清除筛选按钮状态
-    
-    const el = document.getElementById('listResults');
-    if (!q.trim()) {
-        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">输入关键词搜索知识点</div>`;
-        return;
-    }
-    
-    try {
-        const res = await fetch(`${API}/admin/search?q=${encodeURIComponent(q)}&limit=50`);
-        const data = await res.json();
-        listSearchResults = data.results || [];
-        renderListResults();
-    } catch(e) {
-        el.innerHTML = `<div style="color:var(--danger);padding:20px">搜索失败: ${e.message}</div>`;
-    }
-}
-
-function renderListResults() {
-    const el = document.getElementById('listResults');
-    if (listSearchResults.length === 0) {
-        el.innerHTML = `<div style="color:var(--text-secondary);font-size:.9em;padding:20px;text-align:center">未找到相关知识点</div>`;
-        return;
-    }
-    
-    el.innerHTML = `<div style="color:var(--text-secondary);font-size:.8em;margin-bottom:8px">搜索"${listSearchQ}"：找到 ${listSearchResults.length} 个结果</div>` + 
-        listSearchResults.map(r => {
-            const gradeTag = r.grade || '';
-            const branchName = BRANCH_NAMES[r.branch] || r.branch || '';
-            const gradeColor = gradeTag ? (GRADE_COLOR[gradeTag] || '#6366f1') : '#6366f1';
-            return `<div class="node-card" onclick="showListNodeDetail('${r.id}')" style="margin-bottom:10px;padding:14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s">
-                <div style="display:flex;justify-content:space-between;align-items:start">
-                    <div style="flex:1">
-                        <div style="font-weight:600;margin-bottom:4px">${r.name?.zh || r.name || r.id}</div>
-                        <div style="font-size:.8em;color:var(--text-secondary)">${r.id}</div>
-                    </div>
-                    <div style="display:flex;gap:4px;flex-wrap:wrap">
-                        ${gradeTag ? `<span style="padding:2px 8px;background:${gradeColor}20;color:${gradeColor};border-radius:10px;font-size:.75em">${gradeTag}</span>` : ''}
-                        ${branchName ? `<span style="padding:2px 8px;background:#10b98120;color:#10b981;border-radius:10px;font-size:.75em">${branchName}</span>` : ''}
-                    </div>
+            </div>
+            <div class="node-card-desc">${n.description?.zh||n.description||''}</div>
+            <div class="node-card-tags">
+                ${gradeTag?`<span class="mini-tag mt-grade">${gradeTag}</span>`:''}
+                ${n.branch?`<span class="mini-tag mt-branch">${BRANCH_NAMES[n.branch]||n.branch}</span>`:''}
+            </div>
+            <div class="node-card-footer">
+                <div class="diff-row">
+                    <span>难度</span>
+                    <div class="diff-dots">${diffDots}</div>
                 </div>
-                <div style="margin-top:8px;font-size:.82em;color:var(--text-secondary)">${(r.description?.zh || r.description || '暂无描述').substring(0, 100)}...</div>
-            </div>`;
-        }).join('');
+                <div class="time-est">⏱ ${n.estimated_minutes||60}min</div>
+                <div class="prereq-chip${hasPrereq?' has':''}${isIsolated?' isolated':''}">▶ ${isIsolated?'🔴 孤立':hasPrereq?n.prerequisites.length+'个先修':'无先修'}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    // 渲染分页控件
+    renderPagination(totalPages, filteredNodes.length, start, end);
 }
 
-async function showListNodeDetail(nodeId) {
-    try {
-        const res = await fetch(`${API}/nodes/${nodeId}`);
-        const data = await res.json();
-        const n = data.node;
-        
-        const prereqs = data.prerequisites || [];
-        const nexts = data.next_nodes || [];
-        const gradeTag = n.grade || '';
-        const diffLabel = ['','基础','基础','中等','中等','较难','较难','困难','困难','很难','极难'][n.difficulty] || '中等';
-        const impLabel = ['','了解','了解','理解','理解','掌握','掌握','重点','重点','核心','核心'][n.importance] || '掌握';
-        const typeLabels = {'concept':'📖 概念','theorem':'📐 定理','formula':'📐 公式','method':'🔧 方法','law':'⚖️ 定律','axiom':'📌 公理','conjecture':'🔮 猜想'};
-        const typeLabel = typeLabels[n.type] || '📖 知识点';
-        
-        const panel = document.getElementById('listDetailPanel');
-        panel.innerHTML = `
-            <div style="font-size:1.1em;font-weight:600;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">${n.name?.zh || n.id}</div>
-            
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-                ${gradeTag ? `<span style="padding:3px 10px;background:#f0fdf4;color:#15803d;border-radius:12px;font-size:.78em;font-weight:500">${gradeTag}</span>` : ''}
-                <span style="padding:3px 10px;background:#fef3c7;color:#92400e;border-radius:12px;font-size:.78em;font-weight:500">${typeLabel}</span>
-                <span style="padding:3px 10px;background:#dbeafe;color:#1e40af;border-radius:12px;font-size:.78em">难度 ${diffLabel}</span>
-                <span style="padding:3px 10px;background:#fce7f3;color:#9d174d;border-radius:12px;font-size:.78em">重要 ${impLabel}</span>
-            </div>
-            
-            <div style="font-size:.85em;color:var(--text-secondary);margin-bottom:12px;line-height:1.6">
-                ${n.description?.zh || n.description || '暂无描述'}
-            </div>
-            
-            <div style="margin-bottom:12px">
-                <div style="font-weight:600;font-size:.85em;margin-bottom:8px">📚 前置知识 (${prereqs.length})</div>
-                ${prereqs.length ? prereqs.map(p => `
-                    <div onclick="showListNodeDetail('${p.id}')" style="padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:.85em;display:flex;align-items:center;gap:8px">
-                        <span style="color:#10b981">←</span>
-                        <span style="flex:1">${p.name?.zh || p.id}</span>
-                        <span style="color:var(--text-secondary);font-size:.8em">${BRANCH_NAMES[p.branch] || ''}</span>
-                    </div>
-                `).join('') : '<div style="color:var(--text-secondary);font-size:.85em">无前置知识</div>'}
-            </div>
-            
-            <div style="margin-bottom:12px">
-                <div style="font-weight:600;font-size:.85em;margin-bottom:8px">📖 后续知识 (${nexts.length})</div>
-                ${nexts.length ? nexts.map(n2 => `
-                    <div onclick="showListNodeDetail('${n2.id}')" style="padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:.85em;display:flex;align-items:center;gap:8px">
-                        <span style="color:#6366f1">→</span>
-                        <span style="flex:1">${n2.name?.zh || n2.id}</span>
-                        <span style="color:var(--text-secondary);font-size:.8em">${BRANCH_NAMES[n2.branch] || ''}</span>
-                    </div>
-                `).join('') : '<div style="color:var(--text-secondary);font-size:.85em">无后续知识</div>'}
-            </div>
-            
-            <div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
-                <button onclick="openAdminEdit('${n.id}')" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;font-size:.85em;font-weight:500">✏️ 后台编辑</button>
-                <button onclick="copyNodeId('${n.id}')" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer" title="复制ID">📋</button>
-            </div>
-            
-            <div style="margin-top:12px;font-size:.75em;color:var(--text-secondary);word-break:break-all">ID: ${n.id}</div>
-        `;
-        
-    } catch(e) {
-        document.getElementById('listDetailPanel').innerHTML = `<div style="color:var(--danger);padding:20px">加载失败: ${e.message}</div>`;
+function renderPagination(totalPages, total, start, end){
+    const infoEl = document.getElementById('paginationInfo');
+    const btnsEl = document.getElementById('paginationBtns');
+    
+    if(totalPages <= 1){
+        infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+        btnsEl.innerHTML = '';
+        return;
     }
-}
-
-function copyNodeId(id) {
-    navigator.clipboard.writeText(id).then(() => showToast('已复制节点ID'));
-}
-
-function openAdminEdit(nodeId) {
-    window.open(`/admin?edit=${encodeURIComponent(nodeId)}`, '_blank');
-}
-
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    if (!t) {
-        const toast = document.createElement('div');
-        toast.id = 'toast';
-        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:10px;font-size:.9em;z-index:9999';
-        toast.textContent = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
+    
+    infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+    
+    // 分页按钮
+    let btns = '';
+    
+    // 上一页
+    if(listPage > 1){
+        btns += `<button onclick="goPage(${listPage-1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">◀ 上一页</button>`;
+    }
+    
+    // 页码
+    const maxPages = 7;
+    let pages = [];
+    if(totalPages <= maxPages){
+        pages = Array.from({length: totalPages}, (_,i) => i+1);
     } else {
-        t.textContent = msg;
-        t.style.opacity = 1;
-        setTimeout(() => t.style.opacity = 0, 2000);
+        pages = [1];
+        if(listPage > 3) pages.push('...');
+        for(let i = Math.max(2, currentPage-1); i <= Math.min(totalPages-1, currentPage+1); i++){
+            pages.push(i);
+        }
+        if(listPage < totalPages-2) pages.push('...');
+        pages.push(totalPages);
     }
+    
+    pages.forEach(p => {
+        if(p === '...'){
+            btns += `<span style="padding:4px 8px">...</span>`;
+        } else {
+            const active = p === listPage ? 'background:var(--primary);color:#fff;border:none' : '';
+            btns += `<button onclick="goPage(${p})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;${active}">${p}</button>`;
+        }
+    });
+    
+    // 下一页
+    if(listPage < totalPages){
+        btns += `<button onclick="goPage(${listPage+1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">下一页 ▶</button>`;
+    }
+    
+    btnsEl.innerHTML = btns;
+}
+
+function goPage(page){
+    listPage = page;
+    currentPage = page;
+    renderList();
 }
 
 // ============================================================
 async function renderQuizPage(){
-    // 如果已有进行中的同步，先恢复状态
+    // 如果已有进行中的评测，先恢复状态
     const hasInProgress = quizQuestions.length > 0 && quizIndex < quizQuestions.length;
 
     // 获取当前年级的分支列表
-    const gradeNodes = quizLevel ? allNodes.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === quizLevel) : [];
+    const gradeNodes = quizLevel ? allNodes.filter(n => n.tags && n.tags.includes(quizLevel)) : [];
     const branchCounts = {};
     gradeNodes.forEach(n => {
         const b = n.branch || 'other';
         branchCounts[b] = (branchCounts[b] || 0) + 1;
     });
 
-    // 计算该年级已同步和未同步数量
-    let statsHtml = '';
-    const selectedGrades = quizMultiGrades.length > 0 ? quizMultiGrades : (quizLevel ? [quizLevel] : []);
-    
-    if (selectedGrades.length > 0) {
-        const selectedGradeNodes = allNodes.filter(n => selectedGrades.includes(n.grade||n.tags?.find(t=>GRADE_COLOR[t])));
-        const totalInGrade = selectedGradeNodes.length;
-        const assessedInGrade = selectedGradeNodes.filter(n => userKnowledge[n.id]?.status === 'known' || userKnowledge[n.id]?.status === 'unknown').length;
-        const unassessedInGrade = totalInGrade - assessedInGrade;
-        const gradeNames = selectedGrades.map(g => GRADE_LEVELS.find(gl=>gl.id===g)?.name).join('、');
-        
-        // 选择任意年级都显示同步全部按钮
-        statsHtml = `<div style="margin-bottom:10px;padding:10px;background:#ede9fe;border-radius:8px;font-size:.85em">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                <span style="font-weight:600;color:#5b21b6">${gradeNames}</span>
-                <button class="mini-btn" onclick="syncAllSelectedGrades()" style="background:#7c3aed;color:#fff;padding:4px 12px;font-size:.8em">🚀 同步全部</button>
-            </div>
-            <div style="color:#6b7280">共 <strong>${totalInGrade}</strong> 题，已同步 <strong style="color:#10b981">${assessedInGrade}</strong> 题，未同步 <strong style="color:#f59e0b">${unassessedInGrade}</strong> 题</div>
-        </div>`;
-    }
-
     // 年级按钮行
     const gradeBtns = GRADE_LEVELS.filter(g => g.id !== 'all').map(g => {
-        const count = allNodes.filter(n => (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === g.id).length;
-        return `<button class="mini-btn${quizLevel===g.id?' active':''}" onclick="toggleQuizGrade('${g.id}')" style="padding:5px 10px;font-size:.8em">${g.name}<span style="opacity:.6;margin-left:3px">${count}</span></button>`;
+        const total = allNodes.filter(n => n.tags && n.tags.includes(g.id)).length;
+        const known = userKnowledge ? allNodes.filter(n => n.tags && n.tags.includes(g.id) && userKnowledge[n.id]).length : 0;
+        const syncStatus = known > 0 ? `<span style="color:#10b981;font-size:.7em">✓${known}</span>` : '';
+        return `<button class="mini-btn${quizLevel===g.id?' active':''}" onclick="selectQuizLevel('${g.id}')" style="padding:5px 10px;font-size:.8em">${g.name}<span style="opacity:.6;margin-left:3px">${total}${syncStatus}</span></button>`;
     }).join('');
-
-    // 题目数量选择器
-    const countOptions = [5, 10, 20, 30, 50, 100];
-    const countSelectHtml = `<div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-size:.8em;color:var(--text-secondary)">题目数量:</span>
-        <button class="mini-btn${MAX_QUIZ_COUNT===999999?' active':''}" onclick="updateQuizCount(999999)" style="padding:4px 10px;font-size:.75em">全部</button>
-        ${countOptions.map(c => `<button class="mini-btn${MAX_QUIZ_COUNT===c?' active':''}" onclick="updateQuizCount(${c})" style="padding:4px 10px;font-size:.75em">${c}</button>`).join('')}
-    </div>`;
 
     // 分支按钮行（仅大学及以上显示）
     let branchBtns = '';
@@ -803,12 +749,10 @@ async function renderQuizPage(){
         <div class="quiz-header">
             <div style="font-size:1.1em;font-weight:600;margin-bottom:10px">📝 知识点同步</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${gradeBtns}</div>
-            ${statsHtml}
-            ${countSelectHtml}
             ${branchBtns}
-            <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
                 <button class="mini-btn${hasInProgress?' active':''}" onclick="startQuiz()" id="startQuizBtn">${hasInProgress?'▶ 继续同步':'开始同步'}</button>
-                ${quizIndex > 0 ? `<button class="mini-btn" onclick="submitQuiz()" style="background:#10b981;color:#fff;">提交同步</button>` : ''}
+                ${quizLevel ? `<button class="mini-btn" onclick="syncAll('${quizLevel}')" style="background:#10b981;color:#fff;border:none">⚡ 全部同步</button>` : ''}
             </div>
             ${progressHtml}
         </div>
@@ -816,65 +760,6 @@ async function renderQuizPage(){
     </div>`;
 
     if (hasInProgress) renderQuizContent();
-}
-
-// 切换选中的年级（支持多选）
-let quizMultiGrades = [];
-function toggleQuizGrade(g) {
-    // 如果点击的是已选中年级，取消选中
-    if (quizMultiGrades.includes(g)) {
-        quizMultiGrades = quizMultiGrades.filter(x => x !== g);
-    } else {
-        quizMultiGrades.push(g);
-    }
-    quizLevel = quizMultiGrades[quizMultiGrades.length - 1] || '';
-    quizBranch = '';
-    quizQuestions = [];
-    quizIndex = 0;
-    quizAnswers = {};
-    quizReviewed = new Set();
-    renderQuizPage();
-}
-
-// 同步全部已选年级（一键标记该年级所有知识点为已掌握）
-async function syncAllSelectedGrades() {
-    const grades = quizMultiGrades.length > 0 ? quizMultiGrades : (quizLevel ? [quizLevel] : []);
-    if (grades.length === 0) {
-        showToast('请先选择年级');
-        return;
-    }
-    
-    // 获取该年级所有知识点
-    const pool = allNodes.filter(n => {
-        return grades.includes(n.grade||n.tags?.find(t=>GRADE_COLOR[t]));
-    });
-
-    if (pool.length === 0) {
-        showToast('该年级暂无知识点');
-        return;
-    }
-
-    // 一键同步：全部标记为已掌握
-    const assessments = pool.map(n => ({ node_id: n.id, known: true }));
-    
-    try {
-        const response = await fetch(`${API}/users/${USER_ID}/assess`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: USER_ID, assessments })
-        });
-        
-        if (response.ok) {
-            await loadUserKnowledge();
-            updateStats();
-            showToast(`✅ 已同步 ${pool.length} 个知识点！`);
-            renderQuizPage();
-        } else {
-            showToast('同步失败');
-        }
-    } catch (err) {
-        showToast('同步失败：' + err.message);
-    }
 }
 
 function selectQuizLevel(l) {
@@ -887,11 +772,6 @@ function selectQuizLevel(l) {
     renderQuizPage();
 }
 
-function updateQuizCount(c) {
-    MAX_QUIZ_COUNT = c;
-    renderQuizPage();
-}
-
 function selectQuizBranch(b) {
     quizBranch = b;
     quizQuestions = [];
@@ -901,51 +781,18 @@ function selectQuizBranch(b) {
     renderQuizPage();
 }
 
-async function submitQuizNow() {
-    if (Object.keys(quizAnswers).length === 0) {
-        showToast('尚未回答任何题目');
-        return;
-    }
-    
-    const assessments = Object.entries(quizAnswers).map(([id, k]) => ({ node_id: id, known: k }));
-    try {
-        await fetch(`${API}/users/${USER_ID}/assess`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: USER_ID, assessments })
-        });
-        
-        await loadUserKnowledge();
-        updateStats(); // 同步更新导航栏角标
-        quizQuestions = [];
-        quizIndex = 0;
-        quizAnswers = {};
-        quizReviewed = new Set();
-        
-        showToast('同步结果已提交！');
-        renderQuizPage();
-    } catch(err) {
-        showToast('提交失败：' + err.message);
-    }
-}
-
 async function startQuiz() {
     if (!quizLevel) { showToast('请先选择年级'); return; }
 
-    // 过滤：排除本轮已同步的 + 排除历史上已同步的（userKnowledge中状态为known或unknown）
-    let pool = allNodes.filter(n => {
-        const isThisGrade = (n.grade||n.tags?.find(t=>GRADE_COLOR[t])) === quizLevel;
-        const isThisBranch = !quizBranch || n.branch === quizBranch;
-        const isReviewedThisRound = quizReviewed.has(n.id);
-        const isAssessedBefore = userKnowledge[n.id]?.status === 'known' || userKnowledge[n.id]?.status === 'unknown';
-        return isThisGrade && isThisBranch && !isReviewedThisRound && !isAssessedBefore;
-    });
+    // 从前端过滤（用 quizReviewed 排除本轮已同步的，不依赖 userKnowledge）
+    let pool = allNodes.filter(n => n.tags && n.tags.includes(quizLevel) && !quizReviewed.has(n.id));
+    if (quizBranch) pool = pool.filter(n => n.branch === quizBranch);
 
-    if (pool.length === 0) { showToast('该范围内知识点已全部同步完毕'); return; }
+    if (pool.length === 0) { showToast('该范围内知识点已全部评测'); return; }
 
-    // 随机打乱，取最多 MAX_QUIZ_COUNT 题目
+    // 随机打乱，取最多50题
     pool.sort(() => Math.random() - 0.5);
-    quizQuestions = pool.slice(0, MAX_QUIZ_COUNT);
+    quizQuestions = pool; // 全部知识点
     quizIndex = 0;
     quizAnswers = {};
     renderQuizContent();
@@ -968,9 +815,9 @@ async function renderQuizContent() {
             const done = Object.keys(quizAnswers).length;
             el.innerHTML = `<div class="quiz-card" style="text-align:center">
                 <div style="font-size:2em;margin-bottom:12px">🎉</div>
-                <div style="font-size:1.1em;font-weight:600;margin-bottom:8px">本轮同步完成！</div>
+                <div style="font-size:1.1em;font-weight:600;margin-bottom:8px">本轮评测完成！</div>
                 <div style="color:var(--text-secondary);margin-bottom:6px">已完成 <strong>${done}</strong> 道题，已保存</div>
-                <div style="color:var(--text-secondary);margin-bottom:16px;font-size:.85em">同步结果已自动保存</div>
+                <div style="color:var(--text-secondary);margin-bottom:16px;font-size:.85em">（如需继续同步同年级其他分支，可再次点击"开始同步"）</div>
                 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
                     <button class="quiz-action-btn primary" onclick="startQuiz()">再测一轮</button>
                     <button class="quiz-action-btn" onclick="renderQuizPage()">更换年级/分支</button>
@@ -987,11 +834,6 @@ async function renderQuizContent() {
     const pct = (quizIndex / quizQuestions.length * 100).toFixed(0);
     const gradeTag = q.tags && q.tags.find(t => GRADE_COLOR[t]) || quizLevel;
     const branchName = BRANCH_NAMES[q.branch] || q.branch || '';
-    const desc = q.description?.zh || q.description || '';
-    const diffLabel = ['','基础','基础','中等','中等','较难','较难','困难','困难','很难','极难'][q.difficulty] || '中等';
-    const impLabel = ['','了解','了解','理解','理解','掌握','掌握','重点','重点','核心','核心'][q.importance] || '掌握';
-    const typeLabels = {'concept':'📖 概念','theorem':'📐 定理','formula':'📐 公式','method':'🔧 方法','law':'⚖️ 定律','axiom':'📌 公理','conjecture':'🔮 猜想'};
-    const typeLabel = typeLabels[q.type] || '📖 知识点';
 
     el.innerHTML = `<div class="quiz-card">
         <div class="quiz-progress-wrap" style="margin-bottom:14px">
@@ -999,25 +841,26 @@ async function renderQuizContent() {
             <div class="quiz-progress-text">${quizIndex + 1}/${quizQuestions.length}</div>
         </div>
         <div class="quiz-question">${q.name?.zh || q.name || ''}</div>
-        <div class="quiz-meta" style="margin-bottom:12px">
+        <div class="quiz-meta">
             <span class="quiz-meta-tag mt-grade">${gradeTag}</span>
             ${branchName ? `<span class="quiz-meta-tag mt-branch">${branchName}</span>` : ''}
-            <span class="quiz-meta-tag" style="background:#fef3c7;color:#92400e">${typeLabel}</span>
-            <span class="quiz-meta-tag" style="background:#dbeafe;color:#1e40af">难度 ${diffLabel}</span>
-            <span class="quiz-meta-tag" style="background:#fce7f3;color:#9d174d">重要 ${impLabel}</span>
-            ${quizAnswers[q.id] !== undefined ? `<span class="quiz-meta-tag" style="background:#ede9fe;color:#7c3aed">${quizAnswers[q.id]?'✅ 掌握':'❌ 不熟悉'}</span>` : ''}
         </div>
-        ${desc ? `<div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:.88em;color:#475569;line-height:1.6;border-left:3px solid #6366f1">${desc}</div>` : ''}
+        ${q.detail ? `<div style="margin:12px 0;padding:10px;background:#f8fafc;border-radius:8px;border-left:3px solid #6366f1">
+            <div style="font-size:.75em;color:#6366f1;font-weight:600;margin-bottom:4px">📖 定义</div>
+            <div style="font-size:.9em;color:#334155;line-height:1.5">${q.detail.definition || ''}</div>
+            ${q.detail.explanation ? `<div style="font-size:.85em;color:#64748b;margin-top:8px">💡 ${q.detail.explanation}</div>` : ''}
+        </div>` : ''}
+        ${q.examples && q.examples.length > 0 ? `<div style="margin:12px 0">
+            <div style="font-size:.75em;color:#059669;font-weight:600;margin-bottom:6px">📝 例题</div>
+            ${q.examples.slice(0,2).map((ex,i) => `<div style="background:#f0fdf4;padding:10px;border-radius:6px;margin-bottom:6px;font-size:.85em">
+                <div style="color:#1e293b">例${i+1}: ${ex.question || ''}</div>
+                <div style="color:#16a34a;margin-top:4px">答案: ${ex.answer || ''}</div>
+                ${ex.solution ? `<div style="color:#64748b;font-size:.8em;margin-top:4px">解析: ${ex.solution}</div>` : ''}
+            </div>`).join('')}
+        </div>` : ''}
         <div class="quiz-btn-group">
-            <button class="quiz-btn quiz-btn-known${quizAnswers[q.id]===true?' active':''}" onclick="answerQuiz(true)">✅ 掌握</button>
-            <button class="quiz-btn quiz-btn-unknown${quizAnswers[q.id]===false?' active':''}" onclick="answerQuiz(false)">❌ 不熟悉</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-            <button class="quiz-action-btn" onclick="prevQuiz()" ${quizIndex===0?'disabled style="opacity:.4;cursor:not-allowed"':''}>← 上一题</button>
-            <div style="display:flex;gap:8px">
-                ${Object.keys(quizAnswers).length > 0 ? `<button class="quiz-action-btn primary" onclick="submitQuiz()" style="background:#10b981;color:#fff;">📤 提交</button>` : ''}
-                ${quizIndex < quizQuestions.length - 1 ? `<button class="quiz-action-btn" onclick="nextQuiz()">下一题 →</button>` : `<button class="quiz-action-btn" onclick="renderQuizPage()">🔙 回到设置</button>`}
-            </div>
+            <button class="quiz-btn quiz-btn-known" onclick="answerQuiz(true)">✅ 掌握</button>
+            <button class="quiz-btn quiz-btn-unknown" onclick="answerQuiz(false)">❌ 不熟悉</button>
         </div>
     </div>`;
 }
@@ -1027,75 +870,305 @@ async function answerQuiz(known) {
     const id = q.id;
     quizAnswers[id] = known;
     quizReviewed.add(id);
-    // 自动跳到下一题
-    if (quizIndex < quizQuestions.length - 1) {
-        quizIndex++;
-        renderQuizContent();
-    } else {
-        // 最后一题答完后直接提交
-        submitQuiz();
-    }
-}
-
-function prevQuiz() {
-    if (quizIndex > 0) {
-        quizIndex--;
-        renderQuizContent();
-    }
-}
-
-function nextQuiz() {
-    if (quizIndex < quizQuestions.length - 1) {
-        quizIndex++;
-        renderQuizContent();
-    }
-}
-
-async function submitQuiz() {
-    if (Object.keys(quizAnswers).length === 0) {
-        showToast('还没有同步记录，请先回答题目');
-        return;
-    }
-
-    const assessments = Object.entries(quizAnswers).map(([id, k]) => ({ node_id: id, known: k }));
-    try {
-        const response = await fetch(`${API}/users/${USER_ID}/assess`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: USER_ID, assessments })
-        });
-        
-        if (response.ok) {
-            showToast(`提交成功！共提交${Object.keys(quizAnswers).length}道题`);
-            // 保存后清除当前同步状态
-            quizQuestions = [];
-            quizIndex = 0;
-            quizAnswers = {};
-            quizReviewed = new Set();
-            await loadUserKnowledge();
-            updateStats(); // 同步更新导航栏角标
-            renderQuizPage(); // 回到同步页面
-        } else {
-            showToast('提交失败');
-        }
-    } catch (error) {
-        showToast('提交失败，网络错误');
-    }
-}
-
-function skipQuiz() {
-    const q = quizQuestions[quizIndex];
-    const id = q.id;
-    quizReviewed.add(id); // 标记为已跳过，防止下一轮重复出现
-    if (quizIndex < quizQuestions.length - 1) {
-        quizIndex++;
-        renderQuizContent();
-    } else {
-        renderQuizPage(); // 最后一题跳过时回到设置页
-    }
+    quizIndex++;
+    renderQuizContent();
 }
 
 // ============================================================
+
+// ============================================================
+// 数学前沿问题页面
+// ============================================================
+let conjectureFilter = 'all';
+let conjectureSort = 'difficulty';
+
+async function renderConjecturesPage(){
+    document.getElementById('mainContent').innerHTML = `
+    <div style="max-width:1200px;margin:0 auto">
+        <div style="margin-bottom:20px">
+            <h2 style="font-size:1.5em;font-weight:700;margin-bottom:6px">🚀 数学前沿问题</h2>
+            <p style="color:var(--text-secondary);font-size:.9em">包含著名未解猜想、开放数学问题和重要研究前沿，支持按类型和难度筛选，展示关联图谱</p>
+        </div>
+        
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;gap:6px">
+                <button class="mini-btn${conjectureFilter==='all'?' active':''}" onclick="setConjectureFilter('all')">全部</button>
+                <button class="mini-btn${conjectureFilter==='conjecture'?' active':''}" onclick="setConjectureFilter('conjecture')">🤔 猜想</button>
+                <button class="mini-btn${conjectureFilter==='problem'?' active':''}" onclick="setConjectureFilter('problem')">❓ 未解问题</button>
+                <button class="mini-btn${conjectureFilter==='proved'?' active':''}" onclick="setConjectureFilter('proved')">✅ 已解决</button>
+                <button class="mini-btn${conjectureFilter==='unproved'?' active':''}" onclick="setConjectureFilter('unproved')">❓ 未解决</button>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+                <span style="font-size:.85em;color:var(--text-secondary)">排序:</span>
+                <button class="mini-btn${conjectureSort==='difficulty'?' active':''}" onclick="setConjectureSort('difficulty')">按难度</button>
+                <button class="mini-btn${conjectureSort==='name'?' active':''}" onclick="setConjectureSort('name')">按名称</button>
+            </div>
+        </div>
+        
+        <div id="conjectureStats" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap"></div>
+        <div id="conjectureList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px"></div>
+    </div>`;
+    
+    renderConjectureList();
+}
+
+function setConjectureFilter(f){ conjectureFilter = f; renderConjectureList(); }
+function setConjectureSort(s){ conjectureSort = s; renderConjectureList(); }
+
+function renderConjectureList(){
+    // 获取猜想 + 问题
+    let conjectures = allNodes.filter(n =>
+        n.type === 'conjecture' ||
+        n.type === 'problem' ||
+        (n.tags && (n.tags.includes('数学猜想') || n.tags.includes('数学问题') || n.tags.includes('重要问题')))
+    );
+    
+    const conj = conjectures.filter(n => n.type === 'conjecture');
+    const prob = conjectures.filter(n => n.type === 'problem');
+    const proved = conjectures.filter(n => ['proved','disproved'].includes(n.status));
+    const unproved = conjectures.filter(n => ['unproved','unknown'].includes(n.status));
+    
+    document.getElementById('conjectureStats').innerHTML = `
+        <div style="background:var(--surface);padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:var(--primary)">${conjectures.length}</div>
+            <div style="font-size:.82em;color:var(--text-secondary)">全部前沿问题</div>
+        </div>
+        <div style="background:#fce7f3;padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:#db2777">${conj.length}</div>
+            <div style="font-size:.82em;color:#be185d">🤔 猜想</div>
+        </div>
+        <div style="background:#fef3c7;padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:#d97706">${prob.length}</div>
+            <div style="font-size:.82em;color:#b45309">❓ 未解问题</div>
+        </div>
+        <div style="background:#fee2e2;padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:#dc2626">${unproved.length}</div>
+            <div style="font-size:.82em;color:#b91c1c">❓ 未解决</div>
+        </div>
+        <div style="background:#dcfce7;padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:#16a34a">${proved.length}</div>
+            <div style="font-size:.82em;color:#15803d">✅ 已解决</div>
+        </div>`;
+    
+    // 过滤
+    if(conjectureFilter === 'conjecture'){ conjectures = conj; }
+    else if(conjectureFilter === 'problem'){ conjectures = prob; }
+    else if(conjectureFilter === 'proved'){ conjectures = conjectures.filter(n => ['proved','disproved'].includes(n.status)); }
+    else if(conjectureFilter === 'unproved'){ conjectures = conjectures.filter(n => ['unproved','unknown'].includes(n.status)); }
+    
+    // 排序
+    if(conjectureSort === 'difficulty'){
+        conjectures.sort((a,b) => (b.difficulty||50) - (a.difficulty||50));
+    } else if(conjectureSort === 'name'){
+        conjectures.sort((a,b) => (a.name?.zh||'').localeCompare(b.name?.zh||''));
+    }
+    
+    const list = document.getElementById('conjectureList');
+    if(conjectures.length === 0){
+        list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-secondary)">暂无符合条件的记录</div>';
+        return;
+    }
+    
+    const statusColors = {
+        proved: {bg:'#dcfce7', color:'#16a34a', text:'✅ 已解决'},
+        disproved: {bg:'#fee2e2', color:'#dc2626', text:'❌ 已否定'},
+        partially_proved: {bg:'#fef3c7', color:'#d97706', text:'🔄 部分解决'},
+        unproved: {bg:'#fee2e2', color:'#dc2626', text:'❓ 未解决'},
+        disputed: {bg:'#fef3c7', color:'#d97706', text:'⚠️ 争议中'},
+        unknown: {bg:'#f1f5f9', color:'#64748b', text:'❓ 未解决'}
+    };
+    const diffLabels = ['', '入门', '基础', '进阶', '困难', '极难'];
+    
+    list.innerHTML = conjectures.map(c => {
+        const name = c.name?.zh || c.name?.en || '';
+        const desc = c.description?.zh || c.name?.zh || '';
+        const status = c.status || 'unknown';
+        const difficulty = c.difficulty || 50;
+        const year = c.year || '';
+        const proposer = c.proposer || '';
+        const type = c.type || 'conjecture';
+        const isConj = type === 'conjecture';
+        const sc = statusColors[status] || statusColors.unknown;
+        const diffDots = Math.round(difficulty / 20);
+        const diffLabel = diffLabels[diffDots] || '未知';
+        const typeLabel = isConj ? '🤔 猜想' : '❓ 问题';
+        const typeColor = isConj ? '#db2777' : '#d97706';
+        
+        return `
+        <div class="conjecture-card" onclick="showConjectureDetail('${c.id}')" style="background:var(--surface);border-radius:14px;padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;border:1px solid var(--border)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+                <h3 style="font-size:1.05em;font-weight:600;line-height:1.3;flex:1;max-width:70%">${name}</h3>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:8px">
+                    <span style="font-size:.72em;padding:2px 8px;border-radius:20px;font-weight:600;background:${typeColor}22;color:${typeColor}">${typeLabel}</span>
+                    <span style="font-size:.72em;padding:2px 8px;border-radius:20px;font-weight:600;background:${sc.bg};color:${sc.color}">${sc.text}</span>
+                </div>
+            </div>
+            <p style="font-size:.85em;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${desc}</p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+                ${year ? `<span style="font-size:.78em;padding:3px 8px;background:#f1f5f9;border-radius:6px;color:var(--text-secondary)">📅 ${year}</span>` : ''}
+                ${proposer ? `<span style="font-size:.78em;padding:3px 8px;background:#f1f5f9;border-radius:6px;color:var(--text-secondary)">👤 ${proposer}</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:.78em;color:var(--text-secondary)">难度:</span>
+                    <div style="display:flex;gap:3px">
+                        ${[1,2,3,4,5].map(i => `<div style="width:8px;height:8px;border-radius:50%;background:${i<=diffDots?'#f59e0b':'#e2e8f0'}"></div>`).join('')}
+                    </div>
+                    <span style="font-size:.75em;color:var(--text-secondary)">${diffLabel}</span>
+                </div>
+                <span style="font-size:.78em;color:var(--text-secondary)">▶ 查看详情</span>
+            </div>
+        </div>`;
+    }).join('');
+    
+    // 渲染分页控件
+    renderPagination(totalPages, filteredNodes.length, start, end);
+}
+
+function renderPagination(totalPages, total, start, end){
+    const infoEl = document.getElementById('paginationInfo');
+    const btnsEl = document.getElementById('paginationBtns');
+    
+    if(totalPages <= 1){
+        infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+        btnsEl.innerHTML = '';
+        return;
+    }
+    
+    infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+    
+    // 分页按钮
+    let btns = '';
+    
+    // 上一页
+    if(listPage > 1){
+        btns += `<button onclick="goPage(${listPage-1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">◀ 上一页</button>`;
+    }
+    
+    // 页码
+    const maxPages = 7;
+    let pages = [];
+    if(totalPages <= maxPages){
+        pages = Array.from({length: totalPages}, (_,i) => i+1);
+    } else {
+        pages = [1];
+        if(listPage > 3) pages.push('...');
+        for(let i = Math.max(2, currentPage-1); i <= Math.min(totalPages-1, currentPage+1); i++){
+            pages.push(i);
+        }
+        if(listPage < totalPages-2) pages.push('...');
+        pages.push(totalPages);
+    }
+    
+    pages.forEach(p => {
+        if(p === '...'){
+            btns += `<span style="padding:4px 8px">...</span>`;
+        } else {
+            const active = p === listPage ? 'background:var(--primary);color:#fff;border:none' : '';
+            btns += `<button onclick="goPage(${p})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;${active}">${p}</button>`;
+        }
+    });
+    
+    // 下一页
+    if(listPage < totalPages){
+        btns += `<button onclick="goPage(${listPage+1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">下一页 ▶</button>`;
+    }
+    
+    btnsEl.innerHTML = btns;
+}
+
+function goPage(page){
+    listPage = page;
+    currentPage = page;
+    renderList();
+}
+
+function showConjectureDetail(nodeId){
+    try {
+    // 全局辅助函数已在上方定义
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>');
+    }
+    const node = allNodes.find(n => n.id === nodeId);
+    if(!node) {
+        console.error('节点未找到:', nodeId);
+        return;
+    }
+    
+    const name = escapeHtml(node.name?.zh || node.name?.en || '');
+    const desc = escapeHtml(node.description?.zh || node.name?.zh || '');
+    const status = node.status || 'unknown';
+    const year = node.year || '';
+    const proposer = node.proposer || '';
+    const statusDetail = node.status_detail || '';
+    const branch = node.branch || '';
+    const type = node.type || 'conjecture';
+    const isConj = type === 'conjecture';
+    
+    const statusColors = {
+        proved: {bg:'#dcfce7', color:'#16a34a', text:'✅ 已解决'},
+        disproved: {bg:'#fee2e2', color:'#dc2626', text:'❌ 已否定'},
+        partially_proved: {bg:'#fef3c7', color:'#d97706', text:'🔄 部分解决'},
+        unproved: {bg:'#fee2e2', color:'#dc2626', text:'❓ 未解决'},
+        disputed: {bg:'#fef3c7', color:'#d97706', text:'⚠️ 争议中'}
+    };
+    const sc = statusColors[status] || {bg:'#f1f5f9',color:'#64748b',text:'❓ 未知'};
+    
+    const prereqs = getPrereqIds(node.prerequisites).map(pid => {
+        const p = allNodes.find(n => n.id === pid);
+        return p ? `<span onclick="showConjectureDetail('${pid}')" style="display:inline-block;padding:4px 10px;background:#dbeafe;border-radius:6px;font-size:.8em;color:#0284c7;cursor:pointer;margin:2px">${p.name?.zh||pid}</span>` : '';
+    }).join('');
+    
+    const related = allNodes.filter(n => {
+        if(n.id === nodeId) return false;
+        const nname = (n.name?.zh||'') + (n.name?.en||'');
+        return nname.includes(name.substring(0,4)) || (n.branch === branch && n.type !== 'conjecture' && n.type !== 'problem');
+    }).slice(0,12).map(n => {
+        return `<span onclick="showConjectureDetail('${n.id}')" style="display:inline-block;padding:4px 10px;background:#f1f5f9;border-radius:6px;font-size:.8em;color:#64748b;cursor:pointer;margin:2px">${n.name?.zh||n.id}</span>`;
+    }).join('');
+    
+    const typeLabel = isConj ? '🤔 猜想' : '❓ 数学问题';
+    const typeColor = isConj ? '#db2777' : '#d97706';
+    
+    const modal = document.createElement('div');
+    modal.style = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px';
+    modal.onclick = (e) => { if(e.target===modal) modal.remove(); };
+    modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg)">
+        <div style="padding:24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <h2 style="font-size:1.3em;font-weight:700">${name}</h2>
+            <button onclick="this.closest('div').parentElement.remove()" style="background:none;border:none;font-size:1.5em;cursor:pointer;padding:8px;color:var(--text-secondary)">×</button>
+        </div>
+        <div style="padding:24px">
+            <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+                <span style="padding:4px 12px;border-radius:20px;font-size:.85em;font-weight:600;background:${typeColor}22;color:${typeColor}">${typeLabel}</span>
+                <span style="padding:4px 12px;border-radius:20px;font-size:.85em;font-weight:600;background:${sc.bg};color:${sc.color}">${sc.text}</span>
+                <span style="padding:4px 12px;border-radius:20px;font-size:.85em;background:#f1f5f9;color:var(--text-secondary)">📚 ${branch}</span>
+                ${year ? `<span style="padding:4px 12px;border-radius:20px;font-size:.85em;background:#f1f5f9;color:var(--text-secondary)">📅 ${year}年</span>` : ''}
+            </div>
+            <div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:8px;color:var(--text)">📝 问题内容</h4>
+                <p style="font-size:.9em;line-height:1.7;color:var(--text-secondary)">${desc}</p>
+            </div>
+            ${proposer ? `<div style="margin-bottom:20px"><h4 style="font-size:.95em;font-weight:600;margin-bottom:8px">👤 提出者</h4><p style="font-size:.9em;color:var(--text-secondary)">${proposer}</p></div>` : ''}
+            ${statusDetail ? `<div style="margin-bottom:20px"><h4 style="font-size:.95em;font-weight:600;margin-bottom:8px">📊 状态说明</h4><p style="font-size:.9em;line-height:1.6;color:var(--text-secondary)">${statusDetail}</p></div>` : ''}
+            ${prereqs ? `<div style="margin-bottom:20px"><h4 style="font-size:.95em;font-weight:600;margin-bottom:8px">📖 前置知识</h4><div style="display:flex;flex-wrap:wrap;gap:6px">${prereqs}</div></div>` : ''}
+            ${related ? `<div style="margin-bottom:20px"><h4 style="font-size:.95em;font-weight:600;margin-bottom:8px">🔗 相关知识</h4><div style="display:flex;flex-wrap:wrap;gap:6px">${related}</div></div>` : ''}
+            <div style="display:flex;gap:10px;margin-top:24px">
+                <button onclick="viewConjectureGraph('${nodeId}')" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:500">查看关联图谱</button>
+            </div>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+    } catch(e) {
+        console.error('showConjectureDetail 错误:', e);
+    }
+}
+
+
+
+
 async function renderStatsPage(){
     document.getElementById('mainContent').innerHTML=`<div class="stats-page">
         <div class="stats-hero" id="statsHero"></div>
@@ -1109,7 +1182,7 @@ async function renderStatsPage(){
     GRADE_LEVELS.filter(g=>g.id!=='all').forEach(g=>levelStats[g.id]={total:0,known:0});
     Object.values(BRANCH_NAMES).forEach(b=>branchStats[b]={total:0,known:0});
     allNodes.forEach(n=>{
-        const grade=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
+        const grade=n.tags&&n.tags.find(t=>GRADE_COLOR[t]);
         if(grade&&levelStats[grade]){levelStats[grade].total++;if(userKnowledge[n.id]?.status==='known')levelStats[grade].known++}
         const br=BRANCH_NAMES[n.branch]||n.branch;
         if(branchStats[br]){branchStats[br].total++;if(userKnowledge[n.id]?.status==='known')branchStats[br].known++}
@@ -1137,6 +1210,67 @@ async function renderStatsPage(){
             <div class="level-bar-track"><div class="level-bar-fill" style="width:${p}%;background:${colors[Object.keys(branchStats).indexOf(k)%colors.length]}"></div></div>
         </div>`;
     }).join('');
+    
+    // 渲染分页控件
+    renderPagination(totalPages, filteredNodes.length, start, end);
+}
+
+function renderPagination(totalPages, total, start, end){
+    const infoEl = document.getElementById('paginationInfo');
+    const btnsEl = document.getElementById('paginationBtns');
+    
+    if(totalPages <= 1){
+        infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+        btnsEl.innerHTML = '';
+        return;
+    }
+    
+    infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+    
+    // 分页按钮
+    let btns = '';
+    
+    // 上一页
+    if(listPage > 1){
+        btns += `<button onclick="goPage(${listPage-1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">◀ 上一页</button>`;
+    }
+    
+    // 页码
+    const maxPages = 7;
+    let pages = [];
+    if(totalPages <= maxPages){
+        pages = Array.from({length: totalPages}, (_,i) => i+1);
+    } else {
+        pages = [1];
+        if(listPage > 3) pages.push('...');
+        for(let i = Math.max(2, currentPage-1); i <= Math.min(totalPages-1, currentPage+1); i++){
+            pages.push(i);
+        }
+        if(listPage < totalPages-2) pages.push('...');
+        pages.push(totalPages);
+    }
+    
+    pages.forEach(p => {
+        if(p === '...'){
+            btns += `<span style="padding:4px 8px">...</span>`;
+        } else {
+            const active = p === listPage ? 'background:var(--primary);color:#fff;border:none' : '';
+            btns += `<button onclick="goPage(${p})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;${active}">${p}</button>`;
+        }
+    });
+    
+    // 下一页
+    if(listPage < totalPages){
+        btns += `<button onclick="goPage(${listPage+1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">下一页 ▶</button>`;
+    }
+    
+    btnsEl.innerHTML = btns;
+}
+
+function goPage(page){
+    listPage = page;
+    currentPage = page;
+    renderList();
 }
 
 // ============================================================
@@ -1145,11 +1279,10 @@ async function openDetail(id){
     document.getElementById('detailPanel').classList.remove('hidden');
     document.getElementById('detailTitle').textContent=n.name?.zh||n.name||'';
     document.getElementById('detailSubtitle').textContent=`${n.type||'concept'} · ${BRANCH_NAMES[n.branch]||n.branch||'其他'}`;
-    const gradeTag=n.grade||n.tags?.find(t=>GRADE_COLOR[t]);
+    const gradeTag=n.tags&&n.tags.find(t=>GRADE_COLOR[t]);
     const content=document.getElementById('detailContent');
     content.innerHTML=`
         <div class="detail-section"><div class="detail-section-title">描述</div><div class="detail-desc">${n.description?.zh||n.description||'暂无描述'}</div></div>
-        <div class="detail-section"><div class="detail-section-title">年级</div><div class="detail-tags">${gradeTag?`<span class="detail-tag" style="background:#f1f5f9;color:${GRADE_COLOR[gradeTag]||'var(--text)'};border:1px solid var(--border)">${gradeTag}</span>`:'<span style="color:var(--text-secondary)">未设置</span>'}</div></div>
         <div class="detail-section"><div class="detail-section-title">标签</div><div class="detail-tags">${(n.tags||[]).map(t=>`<span class="detail-tag" style="background:${GRADE_COLOR[t]?'#f1f5f9':'var(--bg)'};color:${GRADE_COLOR[t]||'var(--text-secondary)'};border:1px solid ${GRADE_COLOR[t]||'var(--border)'}">${t}</span>`).join('')}</div></div>
         <div class="detail-section"><div class="detail-section-title">指标</div>
             <div class="detail-metrics">
@@ -1158,25 +1291,37 @@ async function openDetail(id){
                 <div class="metric-card"><div class="metric-value">${n.estimated_minutes||60}</div><div class="metric-label">分钟</div></div>
             </div>
         </div>
-        ${(n.prerequisites||[]).length>0?`<div class="detail-section"><div class="detail-section-title">前置知识</div><div class="prereq-list">${(await getPrereqDetails(n.prerequisites)).map(p=>`<div class="rel-item" onclick="openDetail('${p.id}')"><div class="rel-arrow">←</div><span>${p.name?.zh||p.name||p.id}</span></div>`).join('')}</div></div>`:''}
+        ${n.has_obsidian_notes?`<div class="detail-section"><div class="detail-section-title">📝 Obsidian 笔记 (${n.obsidian_count}篇)</div><div class="detail-tags">${(n.obsidian_notes||[]).map(note=>`<span class="detail-tag" style="background:#fef3c7;color:#d97706;cursor:pointer">📄 ${note}</span>`).join('')}</div></div>`:''}
+        ${(n.prerequisites||[]).length>0?`<div class="detail-section"><div class="detail-section-title">前置知识</div><div class="prereq-list">${(await getPrereqDetails(n.prerequisites)).map(p=>`<div class="rel-item" onclick="openDetail('${p.id}')"><div class="rel-arrow">←</div><span>${typeof p.name==="object"?p.name.zh||p.name.en||p.name||p.id:p.name||p.id}</span></div>`).join('')}</div></div>`:''}
         <div class="detail-section"><div class="detail-section-title">后续知识</div><div id="nextNodesList"><div class="loading" style="padding:10px;font-size:.85em">加载中</div></div></div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <a href="/app/web/admin.html?node=${n.id}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#6366f1;color:#fff;text-decoration:none;border-radius:6px;font-size:.85em;font-weight:500">
+                🔧 管理知识点
+            </a>
+        </div>
     `;
     // 加载后续知识
     fetchNextNodes(n.id);
 }
 
-async function getPrereqDetails(ids){
-    return ids.map(id=>{const n=allNodes.find(x=>x.id===id);return n?{id:n.id,name:n.name}:{id,name:{zh:id}}}).filter(x=>x);
+async function getPrereqDetails(prereqs){
+    const ids = getPrereqIds(prereqs);
+    return ids.map(id=>{const n=allNodes.find(x=>x.id===id);const name=n?.name;return n?{id:n.id,name:typeof name==='object'?name.zh||name.en||name||id:name||id}:{id,name:id}}).filter(x=>x);
 }
 
 async function fetchNextNodes(nodeId){
-    const next=allNodes.filter(n=>(n.prerequisites||[]).includes(nodeId));
+    const next=allNodes.filter(n=>getPrereqIds(n.prerequisites).includes(nodeId));
     const el=document.getElementById('nextNodesList');
     if(!el)return;
     if(next.length===0){el.innerHTML='<div style="font-size:.85em;color:var(--text-secondary)">暂无后续知识</div>';return}
     el.innerHTML=next.slice(0,10).map(n=>`<div class="rel-item" onclick="openDetail('${n.id}')"><div class="rel-arrow">→</div><span>${n.name?.zh||n.name||n.id}</span></div>`).join('');
 }
 
+function openObsidianNote(notePath){
+    const vault = encodeURIComponent('Pkmer-Math');
+    const note = encodeURIComponent(notePath);
+    window.open(`obsidian://open?vault=${vault}&file=${note}`);
+}
 function closeDetail(){document.getElementById('detailPanel').classList.add('hidden')}
 
 // ============================================================
@@ -1187,7 +1332,7 @@ function handleSearch(q){
     if(results.length===0){el.innerHTML=`<div class="search-item"><div class="search-item-name">未找到结果</div></div>`;el.classList.add('show');return}
     el.innerHTML=results.map(n=>`<div class="search-item" onclick="openDetail('${n.id}');document.getElementById('searchResults').classList.remove('show');document.getElementById('searchInput').value=''">
         <div class="search-item-name">${n.name?.zh||n.name||''}</div>
-        <div class="search-item-meta">${(n.grade||n.tags?.find(t=>GRADE_COLOR[t]))||''}${((n.grade||n.tags?.find(t=>GRADE_COLOR[t]))&&n.branch)?' · ':''}${BRANCH_NAMES[n.branch]||n.branch||''}</div>
+        <div class="search-item-meta">${(n.tags||[]).filter(t=>GRADE_COLOR[t]).join(' · ')||n.branch?(BRANCH_NAMES[n.branch]||n.branch):''}</div>
     </div>`).join('');
     el.classList.add('show');
 }
@@ -1196,6 +1341,339 @@ function showToast(msg){
     const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
     setTimeout(()=>t.classList.remove('show'),2000);
 }
+
+// ============================================================
+// 数学家页面
+// ============================================================
+let mathematicianFilter = 'all';
+let mathematicianSort = 'name';
+
+async function renderMathematiciansPage(){
+    document.getElementById('mainContent').innerHTML = `
+    <div style="max-width:1200px;margin:0 auto">
+        <div style="margin-bottom:20px">
+            <h2 style="font-size:1.5em;font-weight:700;margin-bottom:6px">👨‍🔬 数学家</h2>
+            <p style="color:var(--text-secondary);font-size:.9em">著名数学家及其贡献，按时期、领域筛选</p>
+        </div>
+        
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;gap:6px">
+                <button class="mini-btn${mathematicianFilter==='all'?' active':''}" onclick="setMathematicianFilter('all')">全部</button>
+                <button class="mini-btn${mathematicianFilter==='ancient'?' active':''}" onclick="setMathematicianFilter('ancient')">🏛️ 古代</button>
+                <button class="mini-btn${mathematicianFilter==='modern'?' active':''}" onclick="setMathematicianFilter('modern')">📜 近代</button>
+                <button class="mini-btn${mathematicianFilter==='contemporary'?' active':''}" onclick="setMathematicianFilter('contemporary')">🌟 现代</button>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+                <span style="font-size:.85em;color:var(--text-secondary)">排序:</span>
+                <button class="mini-btn${mathematicianSort==='name'?' active':''}" onclick="setMathematicianSort('name')">按姓名</button>
+                <button class="mini-btn${mathematicianSort==='birth'?' active':''}" onclick="setMathematicianSort('birth')">按年代</button>
+            </div>
+        </div>
+        
+        <div id="mathematicianStats" style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap"></div>
+        <div id="mathematicianList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px"></div>
+    </div>`;
+    
+    renderMathematicianList();
+}
+
+function setMathematicianFilter(f){ mathematicianFilter = f; renderMathematicianList(); }
+function setMathematicianSort(s){ mathematicianSort = s; renderMathematicianList(); }
+
+function renderMathematicianList(){
+    // 从allNodes中筛选出数学家
+    let mathematicians = allNodes.filter(n =>
+        n.type === 'mathematician' ||
+        (n.tags && (n.tags.includes('数学家') || n.tags.includes('数学人物')))
+    );
+    
+    // 统计数据
+    const ancient = mathematicians.filter(n => n.birth_year && n.birth_year < 1500);
+    const modern = mathematicians.filter(n => n.birth_year && n.birth_year >= 1500 && n.birth_year < 1900);
+    const contemporary = mathematicians.filter(n => n.birth_year && n.birth_year >= 1900);
+    
+    const statsEl = document.getElementById('mathematicianStats');
+    if(statsEl){
+        statsEl.innerHTML = `
+        <div style="background:var(--surface);padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:var(--primary)">${mathematicians.length}</div>
+            <div style="font-size:.82em;color:var(--text-secondary)">全部数学家</div>
+        </div>
+        <div style="background:#fef3c7;padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:#d97706">${ancient.length}</div>
+            <div style="font-size:.82em;color:#b45309">🏛️ 古代</div>
+        </div>
+        <div style="background:#dbeafe;padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:#2563eb">${modern.length}</div>
+            <div style="font-size:.82em;color:#1d4ed8">📜 近代</div>
+        </div>
+        <div style="background:#dcfce7;padding:12px 20px;border-radius:10px;box-shadow:var(--shadow)">
+            <div style="font-size:1.8em;font-weight:700;color:#16a34a">${contemporary.length}</div>
+            <div style="font-size:.82em;color:#15803d">🌟 现代</div>
+        </div>`;
+    }
+    
+    // 过滤
+    if(mathematicianFilter === 'ancient'){ mathematicians = ancient; }
+    else if(mathematicianFilter === 'modern'){ mathematicians = modern; }
+    else if(mathematicianFilter === 'contemporary'){ mathematicians = contemporary; }
+    
+    // 排序
+    if(mathematicianSort === 'name'){
+        mathematicians.sort((a,b) => (a.name?.zh||'').localeCompare(b.name?.zh||''));
+    } else if(mathematicianSort === 'birth'){
+        mathematicians.sort((a,b) => (a.birth_year||0) - (b.birth_year||0));
+    }
+    
+    const list = document.getElementById('mathematicianList');
+    if(!list) return;
+    
+    if(mathematicians.length === 0){
+        list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-secondary)">暂无数学家数据</div>';
+        return;
+    }
+    
+    list.innerHTML = mathematicians.map(m => {
+        const name = m.name?.zh || m.name?.en || '';
+        const desc = m.description?.zh || m.biography?.zh || '';
+        const birth = m.birth_year || '?';
+        const death = m.death_year || '?';
+        const period = m.birth_year < 1500 ? '🏛️ 古代' : m.birth_year < 1900 ? '📜 近代' : '🌟 现代';
+        const periodColor = m.birth_year < 1500 ? '#d97706' : m.birth_year < 1900 ? '#2563eb' : '#16a34a';
+        const fields = (m.fields || m.contributions || []).slice(0, 3).map(f => 
+            `<span style="font-size:.72em;padding:2px 8px;border-radius:10px;background:#f1f5f9;color:var(--text-secondary)">${f}</span>`
+        ).join('');
+        
+        return `
+        <div class="mathematician-card" onclick="showMathematicianDetail('${m.id}')" style="background:var(--surface);border-radius:14px;padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;border:1px solid var(--border)">
+            <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-light));display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5em;font-weight:600;flex-shrink:0">
+                    ${name.charAt(0)}
+                </div>
+                <div style="flex:1;min-width:0">
+                    <h3 style="font-size:1.1em;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</h3>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+                        <span style="font-size:.72em;padding:2px 8px;border-radius:20px;font-weight:600;background:${periodColor}22;color:${periodColor}">${period}</span>
+                        <span style="font-size:.72em;padding:2px 8px;border-radius:20px;background:#f1f5f9;color:var(--text-secondary)">${birth}-${death}</span>
+                    </div>
+                </div>
+            </div>
+            <p style="font-size:.85em;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${desc}</p>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">${fields}</div>
+        </div>`;
+    }).join('');
+    
+    // 渲染分页控件
+    renderPagination(totalPages, filteredNodes.length, start, end);
+}
+
+function renderPagination(totalPages, total, start, end){
+    const infoEl = document.getElementById('paginationInfo');
+    const btnsEl = document.getElementById('paginationBtns');
+    
+    if(totalPages <= 1){
+        infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+        btnsEl.innerHTML = '';
+        return;
+    }
+    
+    infoEl.innerHTML = `显示 ${start+1}-${end} / 共 ${total} 条`;
+    
+    // 分页按钮
+    let btns = '';
+    
+    // 上一页
+    if(listPage > 1){
+        btns += `<button onclick="goPage(${listPage-1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">◀ 上一页</button>`;
+    }
+    
+    // 页码
+    const maxPages = 7;
+    let pages = [];
+    if(totalPages <= maxPages){
+        pages = Array.from({length: totalPages}, (_,i) => i+1);
+    } else {
+        pages = [1];
+        if(listPage > 3) pages.push('...');
+        for(let i = Math.max(2, currentPage-1); i <= Math.min(totalPages-1, currentPage+1); i++){
+            pages.push(i);
+        }
+        if(listPage < totalPages-2) pages.push('...');
+        pages.push(totalPages);
+    }
+    
+    pages.forEach(p => {
+        if(p === '...'){
+            btns += `<span style="padding:4px 8px">...</span>`;
+        } else {
+            const active = p === listPage ? 'background:var(--primary);color:#fff;border:none' : '';
+            btns += `<button onclick="goPage(${p})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;${active}">${p}</button>`;
+        }
+    });
+    
+    // 下一页
+    if(listPage < totalPages){
+        btns += `<button onclick="goPage(${listPage+1})" style="padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer">下一页 ▶</button>`;
+    }
+    
+    btnsEl.innerHTML = btns;
+}
+
+function goPage(page){
+    listPage = page;
+    currentPage = page;
+    renderList();
+}
+
+function showMathematicianDetail(nodeId){
+    const node = allNodes.find(n => n.id === nodeId);
+    if(!node) return;
+    
+    const name = node.name?.zh || node.name?.en || '';
+    const desc = node.description?.zh || node.biography?.zh || '';
+    const birth = node.birth_year || node.year?.split('—')[0] || '?';
+    const death = node.death_year || node.year?.split('—')[1] || '?';
+    const birthplace = node.birthplace || '';
+    const nationality = node.nationality || node.country || '';
+    const fields = node.fields || node.contributions || [];
+    const works = node.works || node.known_works || [];
+    
+    // 查找该数学家相关的数学知识
+    // 1. 发现的定理 - 通过 mathematicians 字段或名称匹配
+    const discoveredTheorems = allNodes.filter(n => {
+        if (n.type !== 'theorem' && n.type !== 'formula' && n.type !== 'law') return false;
+        // 检查 mathematicians 字段
+        if (n.mathematicians && n.mathematicians.includes(nodeId)) return true;
+        // 检查 discoverer 字段
+        if (n.discoverer === nodeId || n.discoverer === name) return true;
+        // 检查 name 或 description 中是否包含数学家名字
+        const nodeText = (n.name?.zh || '') + (n.description?.zh || '');
+        return nodeText.includes(name) && n.type === 'theorem';
+    }).slice(0, 10);
+    
+    // 2. 证明的定理
+    const provedTheorems = allNodes.filter(n => {
+        if (n.type !== 'theorem') return false;
+        if (n.proved_by && (n.proved_by.includes(nodeId) || n.proved_by.includes(name))) return true;
+        const nodeText = (n.name?.zh || '') + (n.description?.zh || '');
+        return nodeText.includes(name) && n.type === 'theorem';
+    }).slice(0, 10);
+    
+    // 3. 提出的问题/猜想
+    const proposedProblems = allNodes.filter(n => {
+        if (n.type !== 'conjecture' && n.type !== 'problem') return false;
+        if (n.proposer === nodeId || n.proposer === name) return true;
+        if (n.mathematicians && n.mathematicians.includes(nodeId)) return true;
+        const nodeText = (n.name?.zh || '') + (n.description?.zh || '');
+        return nodeText.includes(name) && (n.type === 'conjecture' || n.type === 'problem');
+    }).slice(0, 10);
+    
+    // 4. 相关的概念
+    const relatedConcepts = allNodes.filter(n => {
+        if (n.type !== 'concept') return false;
+        if (n.named_after && (n.named_after.includes(nodeId) || n.named_after.includes(name))) return true;
+        const nodeText = (n.name?.zh || '') + (n.description?.zh || '');
+        return nodeText.includes(name);
+    }).slice(0, 8);
+    
+    const modal = document.createElement('div');
+    modal.style = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px';
+    modal.onclick = (e) => { if(e.target===modal) modal.remove(); };
+    modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;max-width:800px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg)">
+        <div style="padding:24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:16px">
+                <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-light));display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.8em;font-weight:600">${name.charAt(0)}</div>
+                <div>
+                    <h2 style="font-size:1.3em;font-weight:700">${name}</h2>
+                    <div style="font-size:.85em;color:var(--text-secondary);margin-top:4px">${birth}-${death} · ${nationality} · ${birthplace}</div>
+                </div>
+            </div>
+            <button onclick="this.closest('div').parentElement.remove()" style="background:none;border:none;font-size:1.5em;cursor:pointer;padding:8px;color:var(--text-secondary)">×</button>
+        </div>
+        <div style="padding:24px">
+            <div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:8px;color:var(--text)">📝 简介</h4>
+                <p style="font-size:.9em;line-height:1.7;color:var(--text-secondary)">${desc}</p>
+            </div>
+            ${fields.length > 0 ? `<div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:8px">🔬 研究领域</h4>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">${fields.map(f => `<span style="padding:4px 12px;border-radius:20px;font-size:.85em;background:#dbeafe;color:#0284c7">${f}</span>`).join('')}</div>
+            </div>` : ''}
+            ${works.length > 0 ? `<div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:8px">📚 主要著作</h4>
+                <ul style="font-size:.9em;color:var(--text-secondary);line-height:1.8;padding-left:20px">${works.map(w => `<li>${w}</li>`).join('')}</ul>
+            </div>` : ''}
+            
+            <!-- 发现的定理 -->
+            ${discoveredTheorems.length > 0 ? `<div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                    <span>💡</span> 发现的定理/公式 (${discoveredTheorems.length})
+                </h4>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                    ${discoveredTheorems.map(t => `
+                        <div onclick="showPage('graph');graphFocusNodeId='${t.id}';renderGraph();document.body.querySelector('[style*=\\\"position:fixed\\\"]').remove()" 
+                             style="padding:10px 14px;background:#f0fdf4;border-radius:8px;cursor:pointer;transition:all .15s;border-left:3px solid #16a34a">
+                            <div style="font-size:.9em;font-weight:500;color:#166534">${t.name?.zh || t.name}</div>
+                            <div style="font-size:.8em;color:#65a30d;margin-top:2px">${t.description?.zh?.substring(0, 60) || ''}...</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>` : ''}
+            
+            <!-- 证明的定理 -->
+            ${provedTheorems.length > 0 ? `<div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                    <span>✓</span> 证明的定理 (${provedTheorems.length})
+                </h4>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                    ${provedTheorems.map(t => `
+                        <div onclick="showPage('graph');graphFocusNodeId='${t.id}';renderGraph();document.body.querySelector('[style*=\\\"position:fixed\\\"]').remove()" 
+                             style="padding:10px 14px;background:#dbeafe;border-radius:8px;cursor:pointer;transition:all .15s;border-left:3px solid #2563eb">
+                            <div style="font-size:.9em;font-weight:500;color:#1e40af">${t.name?.zh || t.name}</div>
+                            <div style="font-size:.8em;color:#60a5fa;margin-top:2px">${t.description?.zh?.substring(0, 60) || ''}...</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>` : ''}
+            
+            <!-- 提出的问题/猜想 -->
+            ${proposedProblems.length > 0 ? `<div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                    <span>❓</span> 提出的问题/猜想 (${proposedProblems.length})
+                </h4>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                    ${proposedProblems.map(p => `
+                        <div onclick="showPage('conjectures');showConjectureDetail('${p.id}')" 
+                             style="padding:10px 14px;background:#fef3c7;border-radius:8px;cursor:pointer;transition:all .15s;border-left:3px solid #d97706">
+                            <div style="font-size:.9em;font-weight:500;color:#92400e">${p.name?.zh || p.name}</div>
+                            <div style="font-size:.8em;color:#f59e0b;margin-top:2px">
+                                ${p.status === 'proved' ? '✅ 已解决' : p.status === 'unproved' ? '❓ 未解决' : '❓ 待研究'}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>` : ''}
+            
+            <!-- 相关概念 -->
+            ${relatedConcepts.length > 0 ? `<div style="margin-bottom:20px">
+                <h4 style="font-size:.95em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                    <span>📐</span> 相关概念 (${relatedConcepts.length})
+                </h4>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    ${relatedConcepts.map(c => `
+                        <span onclick="showPage('graph');graphFocusNodeId='${c.id}';renderGraph();document.body.querySelector('[style*=\\\"position:fixed\\\"]').remove()" 
+                              style="padding:4px 12px;background:#f3e8ff;border-radius:20px;font-size:.85em;color:#7c3aed;cursor:pointer">
+                            ${c.name?.zh || c.name}
+                        </span>
+                    `).join('')}
+                </div>
+            </div>` : ''}
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+}
+
 
 // ============================================================
 document.addEventListener('DOMContentLoaded',init);

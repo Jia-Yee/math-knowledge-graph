@@ -90,33 +90,95 @@ LEVEL_ORDER = ["primary", "junior", "senior", "undergrad", "master", "phd", "res
 
 def get_node_level(node: dict) -> str:
     """从节点数据中获取学习阶段级别"""
-    # 优先使用 education_level 字段
+    # 1. 优先使用 education_level 字段
     level = node.get('education_level', '')
     if level and level in LEVEL_ORDER:
         return level
     
-    # 从 grade 字段推断
+    # 2. 检查 level 字段（可能是字符串如 'primary' 或数字 1-18）
+    level_val = node.get('level', 0)
+    
+    # 如果是字符串
+    if isinstance(level_val, str):
+        level_lower = level_val.lower()
+        if level_lower in LEVEL_ORDER:
+            return level_lower
+        # 处理特殊格式如 '小学primary', '初中junior', 'j8b', 'h10b'
+        for lo in LEVEL_ORDER:
+            if lo in level_lower:
+                return lo
+        # 小学/初中/高中 关键词
+        if '小学' in level_val:
+            return 'primary'
+        elif '初中' in level_val or '初' in level_val:
+            return 'junior'
+        elif '高中' in level_val or '高' in level_val:
+            return 'senior'
+        elif '大学' in level_val or '本科' in level_val:
+            return 'undergrad'
+        elif '硕士' in level_val or '研究' in level_val:
+            return 'master'
+        elif '博士' in level_val:
+            return 'phd'
+    
+    # 3. 如果是数字，根据年级判断
+    if isinstance(level_val, (int, float)):
+        if level_val <= 6:
+            return 'primary'
+        elif level_val <= 9:
+            return 'junior'
+        elif level_val <= 12:
+            return 'senior'
+        elif level_val <= 16:
+            return 'undergrad'
+        elif level_val <= 18:
+            return 'master'
+        else:
+            return 'phd'
+    
+    # 4. 从 grade 或 level_str 推断
     grade = node.get('grade', '') or ''
-    if '小学' in grade:
-        return 'primary'
-    elif '初中' in grade:
-        return 'junior'
-    elif '高中' in grade:
-        return 'senior'
-    elif '大学' in grade or '本科' in grade:
-        return 'undergrad'
-    else:
-        return 'primary'  # 默认
+    level_str = node.get('level_str', '') or ''
+    
+    for text in [grade, level_str]:
+        if not text:
+            continue
+        if '小学' in text or 'primary' in text.lower():
+            return 'primary'
+        elif '初中' in text or 'junior' in text.lower() or 'j' in text[:2].lower():
+            return 'junior'
+        elif '高中' in text or 'senior' in text.lower() or 's' in text[:2].lower():
+            return 'senior'
+        elif '大学' in text or 'undergrad' in text.lower() or '本科' in text:
+            return 'undergrad'
+        elif '硕士' in text or 'master' in text.lower():
+            return 'master'
+        elif '博士' in text or 'phd' in text.lower():
+            return 'phd'
+    
+    # 5. 从 branch 推断
+    branch = node.get('branch', '').lower()
+    if branch in LEVEL_ORDER:
+        return branch
+    
+    # 6. 默认返回 primary
+    return 'primary'
+
+# 全局边数据
+knowledge_graph_edges = []
 
 def load_data():
     """加载知识图谱数据"""
-    global knowledge_graph
+    global knowledge_graph, knowledge_graph_edges
     if NODES_FILE.exists():
         with open(NODES_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
             for node in data.get('nodes', []):
                 knowledge_graph[node['id']] = node
+            # 加载边数据
+            knowledge_graph_edges = data.get('edges', [])
     print(f"Loaded {len(knowledge_graph)} knowledge nodes")
+    print(f"Loaded {len(knowledge_graph_edges)} knowledge edges")
     load_user_profiles()
 
 def load_user_profiles():
@@ -268,8 +330,49 @@ async def get_levels():
         ]
     }
 
+@app.get("/edges")
+async def get_edges(type: str = None, from_node: str = None, to_node: str = None, limit: int = 1000):
+    """获取所有边/关系"""
+    global knowledge_graph_edges
+    
+    edges = knowledge_graph_edges
+    
+    # 按类型筛选
+    if type:
+        edges = [e for e in edges if e.get('type') == type]
+    
+    # 按起始节点筛选
+    if from_node:
+        edges = [e for e in edges if e.get('from') == from_node]
+    
+    # 按目标节点筛选
+    if to_node:
+        edges = [e for e in edges if e.get('to') == to_node]
+    
+    # 限制数量
+    edges = edges[:limit]
+    
+    return {
+        "edges": edges,
+        "total": len(edges)
+    }
+
+@app.get("/nodes/{node_id}/edges")
+async def get_node_edges(node_id: str):
+    """获取某个节点的所有边"""
+    global knowledge_graph_edges
+    
+    edges = [e for e in knowledge_graph_edges 
+             if e.get('from') == node_id or e.get('to') == node_id]
+    
+    return {
+        "node_id": node_id,
+        "edges": edges,
+        "total": len(edges)
+    }
+
 @app.get("/nodes")
-async def get_nodes(level: Optional[str] = None, branch: Optional[str] = None, limit: Optional[int] = 10, for_graph: bool = False):
+async def get_nodes(level: Optional[str] = None, branch: Optional[str] = None, limit: Optional[int] = 50000, for_graph: bool = False):
     """获取知识节点列表"""
     nodes = list(knowledge_graph.values())
     

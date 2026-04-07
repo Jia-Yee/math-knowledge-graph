@@ -1,0 +1,220 @@
+
+<!-- 详情面板组件 -->
+<div id="detail-panel" class="detail-panel hidden">
+    <button class="detail-close" onclick="closeDetail()">×</button>
+    <div class="detail-content">
+        <h3 class="detail-title" id="detail-title">知识点名称</h3>
+        <p class="detail-subtitle" id="detail-subtitle">年级 · 科目</p>
+        
+        <div class="detail-section">
+            <div class="detail-section-title">📖 定义</div>
+            <div class="detail-desc" id="detail-definition">加载中...</div>
+        </div>
+        
+        <div class="detail-section" id="detail-explanation-section" style="display:none">
+            <div class="detail-section-title">💡 解释</div>
+            <div class="detail-desc" id="detail-explanation"></div>
+        </div>
+        
+        <div class="detail-section" id="detail-properties-section" style="display:none">
+            <div class="detail-section-title">📌 性质</div>
+            <ul class="detail-list" id="detail-properties"></ul>
+        </div>
+        
+        <div class="detail-section" id="detail-examples-section">
+            <div class="detail-section-title">📝 例题</div>
+            <div id="detail-examples">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.detail-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 380px;
+    height: 100vh;
+    background: #1e1e2e;
+    border-left: 1px solid #333;
+    overflow-y: auto;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+}
+
+.detail-panel.hidden {
+    transform: translateX(100%);
+}
+
+.detail-content {
+    padding: 20px;
+}
+
+.detail-close {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: #2a2a3e;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 18px;
+}
+
+.detail-close:hover {
+    background: #3a3a4e;
+    color: #fff;
+}
+
+.detail-title {
+    font-size: 1.2em;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.detail-subtitle {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 20px;
+}
+
+.detail-section {
+    margin-bottom: 20px;
+}
+
+.detail-section-title {
+    font-size: 0.75em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+}
+
+.detail-desc {
+    font-size: 0.9em;
+    color: #ccc;
+    line-height: 1.6;
+    background: #2a2a3e;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.detail-list li {
+    padding: 8px 12px;
+    background: #2a2a3e;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    color: #ccc;
+}
+
+.detail-list li::before {
+    content: "• ";
+    color: #8b5cf6;
+}
+
+.example-card {
+    background: #2a2a3e;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.example-question {
+    font-size: 0.9em;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.example-answer {
+    font-size: 0.85em;
+    color: #4ade80;
+    margin-bottom: 5px;
+}
+
+.example-solution {
+    font-size: 0.8em;
+    color: #888;
+}
+</style>
+
+<script>
+let detailIndex = null;
+
+// 打开详情面板
+async function openDetail(nodeId) {
+    const panel = document.getElementById('detail-panel');
+    panel.classList.remove('hidden');
+    
+    try {
+        if (!detailIndex) {
+            detailIndex = await KG_API.loadIndex();
+        }
+        
+        const detail = await KG_API.loadNodeDetail(nodeId, detailIndex);
+        if (!detail) {
+            document.getElementById('detail-definition').textContent = '暂无详细信息';
+            return;
+        }
+        
+        // 更新标题
+        document.getElementById('detail-title').textContent = detail.name?.zh || nodeId;
+        
+        // 更新定义
+        const def = detail.detail?.definition || '暂无定义';
+        document.getElementById('detail-definition').textContent = def;
+        
+        // 更新解释
+        const exp = detail.detail?.explanation;
+        if (exp) {
+            document.getElementById('detail-explanation').textContent = exp;
+            document.getElementById('detail-explanation-section').style.display = 'block';
+        } else {
+            document.getElementById('detail-explanation-section').style.display = 'none';
+        }
+        
+        // 更新性质
+        const props = detail.detail?.properties || [];
+        if (props.length > 0) {
+            const propsHtml = props.map(p => `<li>${p}</li>`).join('');
+            document.getElementById('detail-properties').innerHTML = propsHtml;
+            document.getElementById('detail-properties-section').style.display = 'block';
+        } else {
+            document.getElementById('detail-properties-section').style.display = 'none';
+        }
+        
+        // 更新例题
+        const examples = detail.examples || [];
+        if (examples.length > 0) {
+            const exHtml = examples.map((ex, i) => `
+                <div class="example-card">
+                    <div class="example-question">例${i+1}: ${ex.question || ''}</div>
+                    <div class="example-answer">答案: ${ex.answer || ''}</div>
+                    ${ex.solution ? `<div class="example-solution">解析: ${ex.solution}</div>` : ''}
+                </div>
+            `).join('');
+            document.getElementById('detail-examples').innerHTML = exHtml;
+        } else {
+            document.getElementById('detail-examples').innerHTML = '<p style="color:#888">暂无例题</p>';
+        }
+        
+    } catch (err) {
+        console.error('加载详情失败:', err);
+        document.getElementById('detail-definition').textContent = '加载失败';
+    }
+}
+
+// 关闭详情面板
+function closeDetail() {
+    document.getElementById('detail-panel').classList.add('hidden');
+}
+</script>

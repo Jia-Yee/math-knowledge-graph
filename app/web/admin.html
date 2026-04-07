@@ -160,7 +160,7 @@ async function init() {
     
     // 检查URL参数，自动打开编辑
     const params = new URLSearchParams(window.location.search);
-    const editId = params.get('edit');
+    const editId = params.get('edit') || params.get('node');
     if (editId) {
         await editNodeById(editId);
         // 切换到编辑页面

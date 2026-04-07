@@ -1,2 +1,8 @@
 *.pyc
 /scripts/algebra_nodes_data
+/data/examples
+/logs
+/docs/open-problems
+/docs
+/scripts
+/knowledge_points
