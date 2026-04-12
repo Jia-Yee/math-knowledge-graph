@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, '/Users/jia/.qclaw/workspace/math-knowledge-graph')
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
 from datetime import datetime, timedelta
@@ -308,6 +310,29 @@ def get_learning_path_to_target(user_profile: UserProfile, target_node_id: str) 
     path_nodes.sort(key=lambda x: (LEVEL_ORDER.index(x['level']) if x['level'] in LEVEL_ORDER else 0, x['difficulty']))
     
     return path_nodes
+
+
+# ===== 错题 API 路由注册 =====
+try:
+    from app.api.wrong_question_api import router as wq_router
+    app.include_router(wq_router, prefix="/users")
+    print(f"✅ 错题记录 API 已加载 ({len(wq_router.routes)} routes)")
+except Exception as e:
+    print(f"⚠️ 错题记录 API 加载失败: {e}")
+
+try:
+    from app.api.wrong_question_image import router as img_router
+    app.include_router(img_router, prefix="/users")
+    print(f"✅ 错题图片 API 已加载 ({len(img_router.routes)} routes)")
+except Exception as e:
+    print(f"⚠️ 错题图片 API 加载失败: {e}")
+
+# 静态文件：错题图片
+from fastapi.staticfiles import StaticFiles
+import os
+wq_img_dir = os.path.join(DATA_DIR, "wrong-questions-img")
+os.makedirs(wq_img_dir, exist_ok=True)
+app.mount("/static/wrong-questions-img", StaticFiles(directory=wq_img_dir), name="wq-images")
 
 @app.on_event("startup")
 async def startup_event():
