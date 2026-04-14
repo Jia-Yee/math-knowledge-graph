@@ -255,6 +255,16 @@ const BRANCH_NAMES={arithmetic:'算术',algebra:'代数',geometry:'几何',analy
 'functional_analysis':'泛函分析','differential_geometry':'微分几何','abstract_algebra':'抽象代数','category_theory':'范畴论','stochastic_processes':'随机过程','graph_theory':'图论','game_theory':'博弈论','control_theory':'控制论'};
 const TYPE_BADGE={concept:'tb-concept',theorem:'tb-theorem',formula:'tb-formula',method:'tb-method',law:'tb-law',conjecture:'tb-conjecture'};
 const GRADE_COLOR={};GRADE_LEVELS.forEach(g=>GRADE_COLOR[g.id]=g.color);
+const ERROR_TYPES={
+    "concept_error":"概念理解错误",
+    "calculation_error":"计算错误",
+    "formula_error":"公式记错",
+    "misunderstanding":"审题错误",
+    "careless":"粗心大意",
+    "wrong_approach":"思路错误",
+    "confusion":"知识点混淆",
+    "other":"其他"
+};
 
 let allNodes=[],filteredNodes=[],userKnowledge={},currentPage='graph',selectedGrade='all',selectedBranch='';
 let currentSimulation=null;
@@ -642,8 +652,6 @@ function renderList(){
         </div>`;
     }).join('');
     
-    // 渲染分页控件
-    renderPagination(totalPages, filteredNodes.length, start, end);
 }
 
 function renderPagination(totalPages, total, start, end){
@@ -1023,8 +1031,6 @@ function renderConjectureList(){
         </div>`;
     }).join('');
     
-    // 渲染分页控件
-    renderPagination(totalPages, filteredNodes.length, start, end);
 }
 
 function renderPagination(totalPages, total, start, end){
@@ -1248,7 +1254,7 @@ function handleWQUploadFiles(files){
         reader.onload = e => {
             const div = document.createElement('div');
             div.style.cssText='position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1';
-            div.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover"><button onclick="this.parentElement.remove();removeWQFile(\'\'+f.name+'\')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.8em;line-height:1">×</button>';
+            div.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover"><button onclick="this.parentElement.remove();removeWQFile(\''+f.name+'\')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.8em;line-height:1">×</button>';
             document.getElementById('wqUploadPreview').appendChild(div);
         };
         reader.readAsDataURL(f);
@@ -1404,10 +1410,11 @@ function uploadImgForWQ(wqId){
             if(r.ok){
                 const d = await r.json();
                 // 关联到错题
-                await fetch(# img link not needed for now, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({wrong_question_id: wqId})
-                });
+                // TODO: 如果需要关联图片到错题，取消下面的注释
+                // await fetch(API+'/users/'+USER_ID+'/wq-images', {
+                //     method:'POST', headers:{'Content-Type':'application/json'},
+                //     body:JSON.stringify({wrong_question_id: wqId, image_url: d.url})
+                // });
             }
         }
         renderWrongQuestionsList();
@@ -1437,7 +1444,6 @@ async function deleteWQ(wqId){
     try {await fetch(API+'/users/'+USER_ID+'/wrong-questions/'+wqId,{method:'DELETE'});await renderWrongQuestionsList();} catch(e){alert('删除失败');}
 }
 
-async function renderStatsPage(){
 async function renderStatsPage(){
     document.getElementById('mainContent').innerHTML=`<div class="stats-page">
         <div class="stats-hero" id="statsHero"></div>
@@ -1477,11 +1483,11 @@ async function renderStatsPage(){
         return`<div class="level-bar-item">
             <div class="level-bar-header"><span class="level-bar-name">${k}</span><span class="level-bar-count">${v.known}/${v.total}</span></div>
             <div class="level-bar-track"><div class="level-bar-fill" style="width:${p}%;background:${colors[Object.keys(branchStats).indexOf(k)%colors.length]}"></div></div>
+            <div class="level-bar-footer">
+                <span style="font-size:.78em;color:var(--text-secondary)">▶ 查看详情</span>
+            </div>
         </div>`;
     }).join('');
-    
-    // 渲染分页控件
-    renderPagination(totalPages, filteredNodes.length, start, end);
 }
 
 function renderPagination(totalPages, total, start, end){
@@ -1731,9 +1737,6 @@ function renderMathematicianList(){
             <div style="display:flex;flex-wrap:wrap;gap:4px">${fields}</div>
         </div>`;
     }).join('');
-    
-    // 渲染分页控件
-    renderPagination(totalPages, filteredNodes.length, start, end);
 }
 
 function renderPagination(totalPages, total, start, end){
@@ -1942,11 +1945,8 @@ function showMathematicianDetail(nodeId){
     </div>`;
     document.body.appendChild(modal);
 }
-
-
 // ============================================================
 document.addEventListener('DOMContentLoaded',init);
 </script>
-<script src="/static/quiz-enhanced-v2.js"></script>
 </body>
 </html>
