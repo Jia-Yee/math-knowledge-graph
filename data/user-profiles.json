@@ -3,67 +3,8 @@
     "profile": {
       "name": "小明",
       "grade": "小学四年级",
-      "textbook": "人教版",
-      "learning_style": "视觉型",
-      "daily_time": 30,
-      "parent_contact": "parent_001"
+      "created": "2026-04-07"
     },
-    "abilities": {
-      "计算能力": 75,
-      "空间想象": 60,
-      "逻辑推理": 70,
-      "应用能力": 65
-    },
-    "knowledge_state": {
-      "concept_小学_数与代数_整数_加法": {
-        "mastery": 95,
-        "last_practice": "2026-04-05",
-        "practice_count": 20
-      },
-      "concept_小学_数与代数_整数_减法": {
-        "mastery": 90,
-        "last_practice": "2026-04-05",
-        "practice_count": 18
-      },
-      "concept_小学_数与代数_整数_乘法": {
-        "mastery": 85,
-        "last_practice": "2026-04-06",
-        "practice_count": 15
-      },
-      "concept_小学_数与代数_整数_除法": {
-        "mastery": 70,
-        "last_practice": "2026-04-04",
-        "practice_count": 10
-      },
-      "concept_小学_数与代数_分数_认识": {
-        "mastery": 60,
-        "last_practice": "2026-04-03",
-        "practice_count": 5
-      }
-    },
-    "weaknesses": ["分数运算", "应用题"],
-    "interests": ["几何", "趣味数学"],
-    "achievements": [
-      {"id": "连续学习7天", "date": "2026-04-01"},
-      {"id": "掌握乘法口诀", "date": "2026-03-15"}
-    ]
-  },
-  "student_002": {
-    "profile": {
-      "name": "小红",
-      "grade": "小学六年级",
-      "textbook": "北师大版",
-      "learning_style": "听觉型",
-      "daily_time": 45
-    },
-    "abilities": {
-      "计算能力": 85,
-      "空间想象": 75,
-      "逻辑推理": 80,
-      "应用能力": 70
-    },
-    "knowledge_state": {},
-    "weaknesses": ["比例应用"],
-    "interests": ["数论", "逻辑推理"]
+    "learning_history": []
   }
 }
