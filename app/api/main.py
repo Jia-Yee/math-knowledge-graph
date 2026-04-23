@@ -10,7 +10,7 @@ import json
 import os
 from pathlib import Path
 
-app = FastAPI(title="Math Knowledge Graph API", version="1.0.0")
+app = FastAPI(title="Math Knowledge Graph API", version="2.0.0")
 
 # CORS 配置
 app.add_middleware(
@@ -20,6 +20,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ===== 注册认证 API =====
+try:
+    from app.api.auth_api import router as auth_router
+    app.include_router(auth_router)
+    print("✅ 认证 API 已加载")
+except Exception as e:
+    print(f"⚠️ 认证 API 加载失败: {e}")
+
+# ===== 注册知识掌握 API =====
+try:
+    from app.api.knowledge_api import router as knowledge_router
+    app.include_router(knowledge_router)
+    print("✅ 知识掌握 API 已加载")
+except Exception as e:
+    print(f"⚠️ 知识掌握 API 加载失败: {e}")
+
+# ===== 注册学习路径 API =====
+try:
+    from app.api.learning_path_api import router as learning_path_router
+    app.include_router(learning_path_router)
+    print("✅ 学习路径 API 已加载")
+except Exception as e:
+    print(f"⚠️ 学习路径 API 加载失败: {e}")
 
 # 添加静态文件服务
 from fastapi.staticfiles import StaticFiles
@@ -37,10 +61,14 @@ async def web_index():
 async def admin_index():
     return FileResponse(WEB_DIR / "admin.html")
 
-# 根路由重定向到 Web 页面
+@app.get("/login.html")
+async def login_page():
+    return FileResponse(WEB_DIR / "login.html")
+
+# 根路由重定向到登录页面
 @app.get("/")
 async def root():
-    return FileResponse(WEB_DIR / "index.html")
+    return FileResponse(WEB_DIR / "login.html")
 
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
