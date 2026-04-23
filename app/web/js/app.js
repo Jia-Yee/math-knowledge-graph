@@ -90,6 +90,7 @@ function showPage(page){
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
     switch(page){
         case'graph':renderGraphPage();break;
+        case'tree':renderTreePage();break;
         case'list':renderListPage();break;
         case'conjectures':renderConjecturesPage();break;
         case'mathematicians':renderMathematiciansPage();break;

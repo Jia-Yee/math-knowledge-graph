@@ -173,6 +173,46 @@
         ::-webkit-scrollbar{width:5px;height:5px}
         ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
         @media(max-width:900px){.sidebar{width:210px}.detail-panel{width:280px}.stats-grid{grid-template-columns:1fr}.stats-hero{grid-template-columns:repeat(2,1fr)}}
+    
+        .tree-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: var(--bg);
+            border-radius: 12px;
+        }
+        .tree-header h2 { margin: 0; font-size: 1.3em; }
+        .tree-controls { display: flex; gap: 8px; align-items: center; }
+        .tree-controls select {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text);
+        }
+        #tree-legend {
+            display: flex;
+            gap: 20px;
+            padding: 10px 16px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9em;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        #tree-container {
+            background: var(--bg);
+            border-radius: 12px;
+            height: calc(100vh - 280px);
+            overflow: hidden;
+        }
+        .tree-link { stroke: #ccc; stroke-width: 2px; }
+        .tree-node circle { transition: all 0.2s; }
+        .tree-node:hover circle { filter: brightness(1.1); transform: scale(1.1); }
+
     </style>
 </head>
 <body>
@@ -183,6 +223,7 @@
     </div>
     <div class="topbar-nav">
         <button class="nav-btn active" data-page="graph" onclick="showPage('graph')">🗺️ 图谱</button>
+        <button class="nav-btn" data-page="tree" onclick="showPage('tree')">🌳 知识树</button>
         <button class="nav-btn" data-page="list" onclick="showPage('list')">📋 知识库</button>
         <button class="nav-btn" data-page="conjectures" onclick="showPage('conjectures')">🚀 前沿问题</button>
         <button class="nav-btn" data-page="mathematicians" onclick="showPage('mathematicians')">👨‍🔬 数学家</button>
@@ -242,6 +283,7 @@
 <script src="/static/js/render-wrong-questions.js"></script>
 <script src="/static/js/render-stats.js"></script>
 <script src="/static/js/detail.js"></script>
+        <script src="/static/js/render-tree.js"></script>
 <script src="/static/js/render-mathematicians.js"></script>
 </body>
 </html>
